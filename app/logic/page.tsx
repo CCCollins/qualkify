@@ -287,13 +287,22 @@ export default function LogicPage() {
       />
 
       <div className="flex flex-wrap gap-2 mb-4">
-        {['¬', '‾', '∧', '∨', '⊕', '→', '↔'].map((s) => (
+        {[
+          { symbol: '¬', name: 'Логическое НЕ' },
+          { symbol: '‾', name: 'Альтернативное отрицание' },
+          { symbol: '∧', name: 'Логическое И' },
+          { symbol: '∨', name: 'Логическое ИЛИ' },
+          { symbol: '⊕', name: 'Исключающее ИЛИ (XOR)' },
+          { symbol: '→', name: 'Импликация' },
+          { symbol: '↔', name: 'Эквивалентность' },
+        ].map(({ symbol, name }) => (
           <button
-            key={s}
-            onClick={() => insertSymbol(s)}
+            key={symbol}
+            onClick={() => insertSymbol(symbol)}
             className="px-3 py-1 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+            title={name} // Подсказка с названием оператора
           >
-            {s}
+            {symbol}
           </button>
         ))}
       </div>

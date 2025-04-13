@@ -1,9 +1,52 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
+import { Graphviz } from 'graphviz-react';
 
-const createEmptyMatrix = (rows: number, cols: number): number[][] =>
-  Array.from({ length: rows }, () => Array(cols).fill(0));
+// Вспомогательные функции
+const parseGraph = (input: string) => {
+  const edges: [number, number][] = [];
+  const nodes = new Set<number>();
+
+  input.split(',').forEach((edge) => {
+    const [from, to] = edge.trim().split('-').map(Number);
+    if (isNaN(from) || isNaN(to)) {
+      throw new Error(`Неверный формат ребра: "${edge}". Используйте формат "1-2, 2-3".`);
+    }
+    edges.push([from, to]);
+    nodes.add(from);
+    nodes.add(to);
+  });
+
+  const nodeCount = Math.max(...nodes);
+
+  // Матрица смежности
+  const adjacencyMatrix = Array.from({ length: nodeCount }, () =>
+    Array(nodeCount).fill(0)
+  );
+  edges.forEach(([from, to]) => {
+    adjacencyMatrix[from - 1][to - 1] = 1;
+    adjacencyMatrix[to - 1][from - 1] = 1; // Симметрия для неориентированного графа
+  });
+
+  return { edges, adjacencyMatrix, nodeCount };
+};
+
+const buildIncidenceMatrix = (edges: [number, number][], nodeCount: number) => {
+  const incidenceMatrix = Array.from({ length: nodeCount }, () =>
+    Array(edges.length).fill(0)
+  );
+
+  edges.forEach(([from, to], index) => {
+    incidenceMatrix[from - 1][index] = 1;
+    incidenceMatrix[to - 1][index] = 1;
+  });
+
+  return incidenceMatrix;
+};
+
+const transposeMatrix = (matrix: number[][]): number[][] =>
+  matrix[0].map((_, colIndex) => matrix.map((row) => row[colIndex]));
 
 const multiplyMatrices = (a: number[][], b: number[][]): number[][] => {
   const aRows = a.length, aCols = a[0].length;
@@ -26,16 +69,6 @@ const booleanMatrixMultiply = (a: number[][], b: number[][]): number[][] => {
     Array.from({ length: bCols }, (_, j) =>
       a[i].some((val, k) => val && b[k][j]) ? 1 : 0
     )
-  );
-};
-
-const computeKirchhoff = (adjMatrix: number[][]): number[][] => {
-  const n = adjMatrix.length;
-  const degreeMatrix = Array.from({ length: n }, (_, i) =>
-    Array.from({ length: n }, (_, j) => (i === j ? adjMatrix[i].reduce((a, b) => a + b, 0) : 0))
-  );
-  return degreeMatrix.map((row, i) =>
-    row.map((deg, j) => deg - adjMatrix[i][j])
   );
 };
 
@@ -115,6 +148,7 @@ const MatrixEditor = ({
                 className="w-12 border rounded text-center"
                 value={val}
                 onChange={(e) => updateCell(i, j, e.target.value)}
+                onFocus={(e) => e.target.select()} // Выделяем текст при фокусе
               />
             ))}
           </div>
@@ -125,151 +159,225 @@ const MatrixEditor = ({
 };
 
 export default function KirchhoffPage() {
-  const [size, setSize] = useState(3);
-  const [adjMatrix, setAdjMatrix] = useState(createEmptyMatrix(3, 3));
-  const [matrixA, setMatrixA] = useState(createEmptyMatrix(2, 2));
-  const [matrixB, setMatrixB] = useState(createEmptyMatrix(2, 2));
-  const [result, setResult] = useState<number[][] | null>(null);
+  const [graphInput, setGraphInput] = useState('1-2, 2-3, 1-3, 1-4');
+  const [graphViz, setGraphViz] = useState('');
+  const [kirchhoffMatrix, setKirchhoffMatrix] = useState<number[][] | null>(null);
+  const [steps, setSteps] = useState<string[]>([]);
   const [error, setError] = useState('');
+  const [matrixA, setMatrixA] = useState<number[][]>([[0, 1], [1, 0]]);
+  const [matrixB, setMatrixB] = useState<number[][]>([[1, 0], [0, 1]]);
+  const [resultMatrix, setResultMatrix] = useState<number[][] | null>(null);
 
-  const handleAdjChange = (i: number, j: number, value: string) => {
-    const updated = adjMatrix.map((row) => [...row]);
-    updated[i][j] = Number(value);
-    updated[j][i] = Number(value); // симметрия
-    setAdjMatrix(updated);
-  };
+  const generateGraphViz = (edges: [number, number][]) => {
+    let dot = 'graph G {\n';
+    dot += '  layout=neato;\n';
+    dot += '  node [shape=circle];\n';
 
-  const renderAdjMatrix = () =>
-    adjMatrix.map((row, i) => (
-      <div key={i} className="flex gap-2 mb-1">
-        {row.map((_, j) => (
-          <input
-            key={`${i}-${j}`}
-            type="number"
-            className="w-12 border rounded text-center"
-            value={adjMatrix[i][j]}
-            onChange={(e) => handleAdjChange(i, j, e.target.value)}
-          />
-        ))}
-      </div>
-    ));
+    edges.forEach(([from, to]) => {
+      dot += `  ${from} -- ${to};\n`;
+    });
 
-  const generateMatrix = () => {
-    if (size < 1 || size > 20) {
-      setError('Размер от 1 до 20');
-      return;
-    }
-    setAdjMatrix(createEmptyMatrix(size, size));
-    setResult(null);
-    setError('');
+    dot += '}';
+    return dot;
   };
 
   const calculateKirchhoff = () => {
     try {
-      const kirchhoff = computeKirchhoff(adjMatrix);
-      setResult(kirchhoff);
       setError('');
-    } catch (e: unknown) {
-      setResult(null);
-      if (e instanceof Error) {
-        setError(e.message);
-      } else {
-        setError('Произошла неизвестная ошибка');
-      }
+      const { edges, adjacencyMatrix, nodeCount } = parseGraph(graphInput);
+
+      // Строим матрицу инцидентности
+      const incidenceMatrix = buildIncidenceMatrix(edges, nodeCount);
+
+      // Транспонируем матрицу инцидентности
+      const incidenceMatrixT = transposeMatrix(incidenceMatrix);
+
+      // Умножаем I * I^T
+      const product = multiplyMatrices(incidenceMatrix, incidenceMatrixT);
+
+      // Умножаем матрицу смежности на 2
+      const scaledAdjMatrix = adjacencyMatrix.map((row) =>
+        row.map((val) => 2 * val)
+      );
+
+      // Вычисляем матрицу Кирхгоффа: K = I * I^T - 2 * A
+      const kirchhoff = product.map((row, i) =>
+        row.map((val, j) => val - scaledAdjMatrix[i][j])
+      );
+
+      // Генерация шагов для отображения
+      const stepsDescription = [
+        `Формула: II^T - 2A = K\n\n1. Построение матрицы инцидентности:`,
+        ...incidenceMatrix.map(
+          (row, i) => `   Строка ${i + 1}: [${row.join(', ')}]`
+        ),
+        `2. Транспонирование матрицы инцидентности:`,
+        ...incidenceMatrixT.map(
+          (row, i) => `   Строка ${i + 1}: [${row.join(', ')}]`
+        ),
+        `3. Умножение матрицы инцидентности на её транспонированную:`,
+        ...product.map(
+          (row, i) => `   Строка ${i + 1}: [${row.join(', ')}]`
+        ),
+        `4. Умножение матрицы смежности на 2:`,
+        ...scaledAdjMatrix.map(
+          (row, i) => `   Строка ${i + 1}: [${row.join(', ')}]`
+        ),
+        `5. Построение матрицы Кирхгоффа:`,
+        ...kirchhoff.map(
+          (row, i) => `   Строка ${i + 1}: [${row.join(', ')}]`
+        ),
+      ];
+
+      setSteps(stepsDescription);
+      setKirchhoffMatrix(kirchhoff);
+      setGraphViz(generateGraphViz(edges));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Произошла ошибка');
+      setKirchhoffMatrix(null);
+      setSteps([]);
     }
   };
 
   const handleMultiply = () => {
     try {
       const result = multiplyMatrices(matrixA, matrixB);
-      setResult(result);
+  
+      // Генерация шагов для отображения
+      const stepsDescription = [
+        '1. Проверка совместимости матриц для умножения.',
+        '2. Умножение строк матрицы A на столбцы матрицы B:',
+        ...matrixA.map((row, i) =>
+          matrixB[0].map((_, j) => {
+            const computation = row
+              .map((val, k) => `${val} * ${matrixB[k][j]}`)
+              .join(' + ');
+            return `   Элемент [${i + 1}, ${j + 1}] = ${computation}`;
+          })
+        ).flat(),
+      ];
+  
+      setSteps(stepsDescription);
+      setResultMatrix(result);
       setError('');
-    } catch (e: unknown) {
-      setResult(null);
-      if (e instanceof Error) {
-        setError(e.message);
-      } else {
-        setError('Произошла неизвестная ошибка');
-      }
+    } catch (e) {
+      setResultMatrix(null);
+      setSteps([]);
+      setError(e instanceof Error ? e.message : 'Произошла ошибка при умножении матриц');
     }
   };
 
   const handleBoolMultiply = () => {
     try {
       const result = booleanMatrixMultiply(matrixA, matrixB);
-      setResult(result);
+  
+      // Генерация шагов для отображения
+      const stepsDescription = [
+        '1. Проверка совместимости матриц для булевого умножения.',
+        '2. Выполнение булевого умножения:',
+        ...matrixA.map((row, i) =>
+          matrixB[0].map((_, j) => {
+            const computation = row
+              .map((val, k) => `${val} ∧ ${matrixB[k][j]}`)
+              .join(' ∨ ');
+            return `   Элемент [${i + 1}, ${j + 1}] = ${computation}`;
+          })
+        ).flat(),
+      ];
+  
+      setSteps(stepsDescription);
+      setResultMatrix(result);
       setError('');
-    } catch (e: unknown) {
-      setResult(null);
-      if (e instanceof Error) {
-        setError(e.message);
-      } else {
-        setError('Произошла неизвестная ошибка');
-      }
+    } catch (e) {
+      setResultMatrix(null);
+      setSteps([]);
+      setError(e instanceof Error ? e.message : 'Произошла ошибка при булевом умножении матриц');
     }
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-10">
-      <h1 className="text-3xl font-bold mb-6 text-center">Матрица Кирхгофа и умножение</h1>
+    <div className="max-w-5xl mx-auto p-6">
+      <h1 className="text-3xl font-bold mb-6 text-center">Матрица Кирхгоффа и операции над матрицами</h1>
 
-      {/* Adjacency matrix */}
-      <div className="mb-6">
-        <label className="font-medium">Количество вершин:</label>
+      {/* Ввод графа */}
+      <div className="mb-4">
+        <label className="block mb-2 font-medium">Введите граф:</label>
         <input
-          type="number"
-          value={size}
-          onChange={(e) => setSize(Number(e.target.value))}
-          className="ml-2 border p-1 rounded w-20"
+          value={graphInput}
+          onChange={(e) => setGraphInput(e.target.value)}
+          className="w-full p-3 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500"
+          placeholder="Формат: 1-2, 2-3, 1-3, 1-4"
         />
-        <button
-          onClick={generateMatrix}
-          className="ml-4 bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
-        >
-          Сгенерировать
-        </button>
-
-        <h2 className="font-semibold mt-4 mb-2">Матрица смежности:</h2>
-        {renderAdjMatrix()}
-        <button
-          onClick={calculateKirchhoff}
-          className="mt-3 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-        >
-          Построить матрицу Кирхгоффа
-        </button>
       </div>
 
-      <hr className="my-8" />
+      <button
+        onClick={calculateKirchhoff}
+        className="w-full py-3 px-4 rounded-lg shadow bg-blue-600 hover:bg-blue-700 text-white"
+      >
+        Построить матрицу Кирхгоффа
+      </button>
 
-      {/* Matrix A & B */}
-      <div className="grid md:grid-cols-2 gap-6">
-        <MatrixEditor label="Матрица A" matrix={matrixA} setMatrix={setMatrixA} />
-        <MatrixEditor label="Матрица B" matrix={matrixB} setMatrix={setMatrixB} />
-      </div>
+      {error && <div className="mt-4 text-red-600 font-medium">{error}</div>}
 
-      <div className="flex flex-wrap gap-4 mt-2">
-        <button
-          onClick={handleMultiply}
-          className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
-        >
-          Умножить A × B
-        </button>
-        <button
-          onClick={handleBoolMultiply}
-          className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
-        >
-          Булево умножение A × B
-        </button>
-      </div>
-
-      {error && <div className="mt-4 text-red-600 font-medium">Ошибка: {error}</div>}
-
-      {result && (
-        <div className="mt-8">
-          <h3 className="text-lg font-semibold mb-2">Результат:</h3>
-          <MatrixTable data={result} />
+      {graphViz && (
+        <div className="mt-6">
+          <Graphviz dot={graphViz} options={{ height: '300px', width: '100%' }} />
         </div>
       )}
+
+      {kirchhoffMatrix && (
+        <div className="mt-8">
+          <h3 className="text-lg font-semibold mb-2">Матрица Кирхгоффа:</h3>
+          <MatrixTable data={kirchhoffMatrix} />
+        </div>
+      )}
+
+      {steps.length > 0 && (
+        <div className="mt-6">
+          <h3 className="text-lg font-semibold mb-2">Шаги вычислений:</h3>
+          <pre className="bg-gray-100 p-4 rounded text-sm text-gray-800 whitespace-pre-wrap">
+            {steps.join('\n')}
+          </pre>
+        </div>
+      )}
+
+      {/* Операции над матрицами */}
+      <div className="mt-10">
+        <h2 className="text-2xl font-bold mb-4">Операции над матрицами</h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Матрица A:</h3>
+            <MatrixEditor label="Матрица A" matrix={matrixA} setMatrix={setMatrixA} />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Матрица B:</h3>
+            <MatrixEditor label="Матрица B" matrix={matrixB} setMatrix={setMatrixB} />
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-4 mt-4">
+          <button
+            onClick={handleMultiply}
+            className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
+          >
+            Умножить A × B
+          </button>
+          <button
+            onClick={handleBoolMultiply}
+            className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
+          >
+            Булево умножение A × B
+          </button>
+        </div>
+
+        {resultMatrix && (
+          <div className="mt-6">
+            <h3 className="text-lg font-semibold mb-2">Результат:</h3>
+            <MatrixTable data={resultMatrix} />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
