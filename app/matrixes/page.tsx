@@ -2,6 +2,9 @@
 
 import React, { useState } from 'react';
 import { Graphviz } from 'graphviz-react';
+import { FaRegArrowAltCircleRight } from 'react-icons/fa';
+import { TbSmartHome } from 'react-icons/tb';
+import Link from 'next/link';
 
 // Вспомогательные функции
 const parseGraph = (input: string) => {
@@ -196,11 +199,12 @@ export default function KirchhoffPage() {
   const [graphInput, setGraphInput] = useState('1-2, 2-3, 1-3, 1-4');
   const [graphViz, setGraphViz] = useState('');
   const [kirchhoffMatrix, setKirchhoffMatrix] = useState<number[][] | null>(null);
-  const [steps, setSteps] = useState<string[]>([]);
   const [error, setError] = useState('');
   const [matrixA, setMatrixA] = useState<number[][]>([[0, 1], [1, 0]]);
   const [matrixB, setMatrixB] = useState<number[][]>([[1, 0], [0, 1]]);
   const [resultMatrix, setResultMatrix] = useState<number[][] | null>(null);
+  const [kirchhoffSteps, setKirchhoffSteps] = useState<string[]>([]);
+  const [multiplicationSteps, setMultiplicationSteps] = useState<string[]>([]);
 
   const generateGraphViz = (edges: [number, number][]) => {
     let dot = 'graph G {\n';
@@ -219,57 +223,57 @@ export default function KirchhoffPage() {
     try {
       setError('');
       const { edges, adjacencyMatrix, nodeCount } = parseGraph(graphInput);
-
+  
       // Строим матрицу инцидентности
       const incidenceMatrix = buildIncidenceMatrix(edges, nodeCount);
-
+  
       // Транспонируем матрицу инцидентности
       const incidenceMatrixT = transposeMatrix(incidenceMatrix);
-
+  
       // Умножаем I * I^T
       const product = multiplyMatrices(incidenceMatrix, incidenceMatrixT);
-
+  
       // Умножаем матрицу смежности на 2
       const scaledAdjMatrix = adjacencyMatrix.map((row) =>
         row.map((val) => 2 * val)
       );
-
+  
       // Вычисляем матрицу Кирхгоффа: K = I * I^T - 2 * A
       const kirchhoff = product.map((row, i) =>
         row.map((val, j) => val - scaledAdjMatrix[i][j])
       );
-
+  
       // Генерация шагов для отображения
       const stepsDescription = [
-        `Формула: II^T - 2A = K\n\n1. Построение матрицы инцидентности:`,
+        `Формула: II^T - 2A = K\n\n1️⃣ Построение матрицы инцидентности:`,
         ...incidenceMatrix.map(
-          (row, i) => `   Строка ${i + 1}: [${row.join(', ')}]`
+          (row) => `   [${row.join(', ')}]`
         ),
-        `2. Транспонирование матрицы инцидентности:`,
+        `2️⃣ Транспонирование матрицы инцидентности:`,
         ...incidenceMatrixT.map(
-          (row, i) => `   Строка ${i + 1}: [${row.join(', ')}]`
+          (row) => `   [${row.join(', ')}]`
         ),
-        `3. Умножение матрицы инцидентности на её транспонированную:`,
+        `3️⃣ Умножение матрицы инцидентности на её транспонированную:`,
         ...product.map(
-          (row, i) => `   Строка ${i + 1}: [${row.join(', ')}]`
+          (row) => `   [${row.join(', ')}]`
         ),
-        `4. Умножение матрицы смежности на 2:`,
+        `4️⃣ Умножение матрицы смежности на 2:`,
         ...scaledAdjMatrix.map(
-          (row, i) => `   Строка ${i + 1}: [${row.join(', ')}]`
+          (row) => `   [${row.join(', ')}]`
         ),
-        `5. Построение матрицы Кирхгоффа:`,
+        `5️⃣ Построение матрицы Кирхгоффа:`,
         ...kirchhoff.map(
-          (row, i) => `   Строка ${i + 1}: [${row.join(', ')}]`
+          (row) => `   [${row.join(', ')}]`
         ),
       ];
-
-      setSteps(stepsDescription);
+  
+      setKirchhoffSteps(stepsDescription); // Сохраняем шаги для матрицы Кирхгоффа
       setKirchhoffMatrix(kirchhoff);
       setGraphViz(generateGraphViz(edges));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Произошла ошибка');
       setKirchhoffMatrix(null);
-      setSteps([]);
+      setKirchhoffSteps([]); // Очищаем шаги при ошибке
     }
   };
 
@@ -279,8 +283,8 @@ export default function KirchhoffPage() {
   
       // Генерация шагов для отображения
       const stepsDescription = [
-        '1. Проверка совместимости матриц для умножения.',
-        '2. Умножение строк матрицы A на столбцы матрицы B:',
+        '1️⃣ Проверка совместимости матриц для умножения.',
+        '2️⃣ Умножение строк матрицы A на столбцы матрицы B:',
         ...matrixA.map((row, i) =>
           matrixB[0].map((_, j) => {
             const computation = row
@@ -291,24 +295,24 @@ export default function KirchhoffPage() {
         ).flat(),
       ];
   
-      setSteps(stepsDescription);
+      setMultiplicationSteps(stepsDescription); // Сохраняем шаги для умножения
       setResultMatrix(result);
       setError('');
     } catch (e) {
       setResultMatrix(null);
-      setSteps([]);
+      setMultiplicationSteps([]); // Очищаем шаги при ошибке
       setError(e instanceof Error ? e.message : 'Произошла ошибка при умножении матриц');
     }
   };
-
+  
   const handleBoolMultiply = () => {
     try {
       const result = booleanMatrixMultiply(matrixA, matrixB);
   
       // Генерация шагов для отображения
       const stepsDescription = [
-        '1. Проверка совместимости матриц для булевого умножения.',
-        '2. Выполнение булевого умножения:',
+        '1️⃣ Проверка совместимости матриц для булевого умножения.',
+        '2️⃣ Выполнение булевого умножения:',
         ...matrixA.map((row, i) =>
           matrixB[0].map((_, j) => {
             const computation = row
@@ -319,99 +323,128 @@ export default function KirchhoffPage() {
         ).flat(),
       ];
   
-      setSteps(stepsDescription);
+      setMultiplicationSteps(stepsDescription); // Сохраняем шаги для булевого умножения
       setResultMatrix(result);
       setError('');
     } catch (e) {
       setResultMatrix(null);
-      setSteps([]);
+      setMultiplicationSteps([]); // Очищаем шаги при ошибке
       setError(e instanceof Error ? e.message : 'Произошла ошибка при булевом умножении матриц');
     }
   };
 
   return (
-    <div className="max-w-5xl mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6 text-center">Матрица Кирхгоффа и операции над матрицами</h1>
-
-      {/* Ввод графа */}
-      <div className="mb-4">
-        <label className="block mb-2 font-medium">Введите граф:</label>
-        <input
-          value={graphInput}
-          onChange={(e) => setGraphInput(e.target.value)}
-          className="w-full p-3 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500"
-          placeholder="Формат: 1-2, 2-3, 1-3, 1-4"
-        />
+    <div className="max-w-6xl mx-auto px-4">
+      <div className="flex justify-center items-center mb-6">
+        <Link
+          href="/"
+          className="text-blue-600 hover:text-blue-800 transition"
+          title="Домашняя страница"
+        >
+          <TbSmartHome className="text-3xl mr-2" />
+        </Link>
+        <h1 className="text-xl md:text-3xl font-bold text-center">
+          Матрица Кирхгоффа и операции над матрицами
+        </h1>
       </div>
-
-      <button
-        onClick={calculateKirchhoff}
-        className="w-full py-3 px-4 rounded-lg shadow bg-blue-600 hover:bg-blue-700 text-white"
-      >
-        Построить матрицу Кирхгоффа
-      </button>
-
-      {error && <div className="mt-4 text-red-600 font-medium">{error}</div>}
-
-      {graphViz && (
-        <div className="mt-6">
-          <Graphviz dot={graphViz} options={{ height: '300px', width: '100%' }} />
-        </div>
-      )}
-
-      {kirchhoffMatrix && (
-        <div className="mt-8">
-          <h3 className="text-lg font-semibold mb-2">Матрица Кирхгоффа:</h3>
-          <MatrixTable data={kirchhoffMatrix} />
-        </div>
-      )}
-
-      {steps.length > 0 && (
-        <div className="mt-6">
-          <h3 className="text-lg font-semibold mb-2">Шаги вычислений:</h3>
-          <pre className="bg-gray-100 p-4 rounded text-sm text-gray-800 whitespace-pre-wrap">
-            {steps.join('\n')}
-          </pre>
-        </div>
-      )}
-
-      {/* Операции над матрицами */}
-      <div className="mt-10">
-        <h2 className="text-2xl text-center font-bold mb-4">Операции над матрицами</h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h3 className="text-lg font-semibold text-center mb-2">Матрица A</h3>
-            <MatrixEditor label="" matrix={matrixA} setMatrix={setMatrixA} />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-center mb-2">Матрица B</h3>
-            <MatrixEditor label="" matrix={matrixB} setMatrix={setMatrixB} />
-          </div>
-        </div>
-
-        <div className="flex justify-center items-center flex-wrap gap-4 mt-8">
+  
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 items-stretch">
+      {/* Ввод графа */}
+      <div className="bg-white shadow rounded-lg p-4 space-y-4 h-full">
+        <label className="block font-medium">Введите граф:</label>
+        <div className="relative flex items-center w-full">
+          <input
+            value={graphInput}
+            onChange={(e) => setGraphInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && calculateKirchhoff()}
+            className="flex-1 border rounded p-3 pr-12 font-medium text-sm md:text-base w-full"
+            placeholder="Формат: 1-2, 2-3, 1-3, 1-4"
+          />
           <button
-            onClick={handleMultiply}
-            className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
+            onClick={calculateKirchhoff}
+            className="absolute right-2 rounded-full bg-blue-600 text-white p-2 hover:bg-blue-700 transition flex-shrink-0"
           >
-            Умножить A × B
-          </button>
-          <button
-            onClick={handleBoolMultiply}
-            className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
-          >
-            Булево умножение A × B
+            <FaRegArrowAltCircleRight className="text-lg" />
           </button>
         </div>
 
-        {resultMatrix && (
-          <div className="mt-6">
-            <h3 className="text-lg font-semibold mb-2">Результат:</h3>
-            <MatrixTable data={resultMatrix} />
+        {error && <div className="text-red-600 text-sm">{error}</div>}
+
+        {kirchhoffSteps.length > 0 && (
+          <div>
+            <h3 className="text-base font-semibold mb-1">Шаги:</h3>
+            <pre className="text-sm bg-gray-100 p-3 rounded whitespace-pre-wrap overflow-x-auto">
+              {kirchhoffSteps.join('\n')}
+            </pre>
           </div>
         )}
       </div>
+
+      {/* Правая часть: граф и матрица */}
+      <div className="flex flex-col gap-4 h-full">
+        <div className="bg-white rounded shadow p-4 flex-1 flex flex-col gap-4 justify-start">
+          {graphViz && (
+            <div className="border rounded p-2 overflow-auto">
+              <Graphviz dot={graphViz} options={{ height: '300px', width: '100%' }} />
+            </div>
+          )}
+
+          {kirchhoffMatrix && (
+            <div>
+              <h3 className="font-semibold text-center">Матрица Кирхгоффа</h3>
+              <MatrixTable data={kirchhoffMatrix} />
+            </div>
+          )}
+        </div>
+      </div>
     </div>
+
+    {/* Операции над матрицами */}
+    <div className="bg-white rounded-lg shadow p-4 md:p-6 mt-6">
+      <h2 className="text-xl md:text-2xl font-bold text-center mb-4 md:mb-6">
+        Операции над матрицами
+      </h2>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+        <MatrixEditor label="Матрица A" matrix={matrixA} setMatrix={setMatrixA} />
+        <MatrixEditor label="Матрица B" matrix={matrixB} setMatrix={setMatrixB} />
+      </div>
+
+      <div className="flex flex-wrap justify-center gap-4 mt-4 md:mt-6">
+        <button
+          onClick={handleMultiply}
+          className="bg-purple-600 text-white px-3 py-2 md:px-4 md:py-2 rounded hover:bg-purple-700 transition"
+        >
+          A × B
+        </button>
+        <button
+          onClick={handleBoolMultiply}
+          className="bg-yellow-500 text-white px-3 py-2 md:px-4 md:py-2 rounded hover:bg-yellow-600 transition"
+        >
+          Булево A × B
+        </button>
+      </div>
+
+      {multiplicationSteps.length > 0 && (
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 items-start">
+          <div>
+            <h3 className="text-lg font-semibold mb-2 text-center">Шаги</h3>
+            <pre className="text-sm bg-gray-100 p-4 rounded whitespace-pre-wrap overflow-x-auto">
+              {multiplicationSteps.join('\n')}
+            </pre>
+          </div>
+
+          {resultMatrix && (
+            <div>
+              <h3 className="text-lg font-semibold mb-2 text-center">Результат</h3>
+              <div className="overflow-x-auto">
+                <MatrixTable data={resultMatrix} />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  </div>
   );
 }

@@ -1,10 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import { FaRegArrowAltCircleRight } from "react-icons/fa";
 import nerdamer from 'nerdamer';
 import 'nerdamer/Algebra';
 import 'nerdamer/Calculus';
 import 'nerdamer/Solve';
+import { TbSmartHome } from 'react-icons/tb';
+import Link from 'next/link';
 
 const validateExpression = (expr: string): void => {
   // Проверка баланса скобок
@@ -255,8 +258,19 @@ export default function InductionProver() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6 text-center">Доказательство по индукции</h1>
+    <div className="max-w-6xl mx-auto px-4">
+      <div className="flex justify-center items-center mb-6">
+        <Link
+          href="/"
+          className="text-blue-600 hover:text-blue-800 transition"
+          title="Домашняя страница"
+        >
+          <TbSmartHome className="text-3xl mr-2" />
+        </Link>
+        <h1 className="text-xl md:text-3xl font-bold text-center">
+          Доказательство по индукции
+        </h1>
+      </div>
 
       <div className="mb-4">
         <label className="block mb-2 font-medium">Примеры для проверки:</label>
@@ -283,20 +297,24 @@ export default function InductionProver() {
 
       <div className="mb-6">
         <label className="block mb-2 font-medium">Введите выражение:</label>
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          className="w-full p-3 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500"
-          placeholder="Примеры: 1+2+...+n=n(n+1)/2, n^3-n делится на 3, (1+x)^n≥1+n*x"
-        />
+        <div className="flex items-center border rounded-md overflow-hidden">
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleProve();
+            }}
+            className="w-full p-3 text-lg border-none focus:ring-0"
+            placeholder="Примеры: 1+2+...+n=n(n+1)/2, n^3-n делится на 3, (1+x)^n≥1+n*x"
+          />
+          <button
+            onClick={handleProve}
+            className="bg-blue-600 text-white rounded-full px-2 py-2 mr-2 ml-2 hover:bg-blue-700 transition"
+          >
+            <FaRegArrowAltCircleRight className="text-lg" />
+          </button>
+        </div>
       </div>
-
-      <button
-        onClick={handleProve}
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg shadow transition-colors mb-6"
-      >
-        Доказать по индукции
-      </button>
 
       <pre
         className="bg-gray-50 p-4 rounded-lg border overflow-auto text-sm whitespace-pre-wrap"

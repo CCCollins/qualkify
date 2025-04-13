@@ -1,6 +1,8 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
+import { TbSmartHome } from 'react-icons/tb';
 
 type Mode = 'Простой ввод' | 'Ввод уравнений';
 
@@ -96,59 +98,85 @@ export default function SetsPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-10">
-      <h1 className="text-3xl font-bold mb-6 text-center">Операции над множествами</h1>
-
-      {/* Mode toggle */}
-      <div className="mb-4">
-        <label className="font-medium">Режим ввода:</label>
-        <select
-          className="ml-2 border p-1 rounded"
-          value={mode}
-          onChange={(e) => setMode(e.target.value as Mode)}
+    <div className="max-w-3xl mx-auto px-4">
+      <div className="flex justify-center items-center mb-6">
+        <Link
+          href="/"
+          className="text-blue-600 hover:text-blue-800 transition"
+          title="Домашняя страница"
         >
-          <option>Простой ввод</option>
-          <option>Ввод уравнений</option>
-        </select>
+          <TbSmartHome className="text-3xl mr-2" />
+        </Link>
+        <h1 className="text-xl md:text-3xl font-bold text-center">
+          Операции над множествами
+        </h1>
       </div>
-
-      {/* Input mode: plain sets */}
-      {mode === 'Простой ввод' && (
-        <>
-          <div className="mb-4">
-            <label className="block font-medium mb-1">Множество A:</label>
-            <input
-              value={plainA}
-              onChange={(e) => setPlainA(e.target.value)}
-              className="w-full border rounded p-2"
-              placeholder="1,2,3"
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block font-medium mb-1">Множество B:</label>
-            <input
-              value={plainB}
-              onChange={(e) => setPlainB(e.target.value)}
-              className="w-full border rounded p-2"
-              placeholder="3,4,5"
-            />
-          </div>
-        </>
-      )}
-
-      {/* Input mode: symbolic sets */}
-      {mode === 'Ввод уравнений' && (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+  
+      {/* Mode & Operation */}
+      <div className="grid sm:grid-cols-2 gap-4 mb-6">
+        <div>
+          <label className="block font-medium mb-1">Режим ввода</label>
+          <select
+            className="w-full border p-2 rounded"
+            value={mode}
+            onChange={(e) => setMode(e.target.value as Mode)}
+          >
+            <option>Простой ввод</option>
+            <option>Ввод уравнений</option>
+          </select>
+        </div>
+  
+        <div>
+          <label className="block font-medium mb-1">Операция</label>
+          <select
+            className="w-full border p-2 rounded"
+            value={operation}
+            onChange={(e) => setOperation(e.target.value)}
+          >
+            <option>Объединение</option>
+            <option>Пересечение</option>
+            <option>Разность A - B</option>
+            <option>Разность B - A</option>
+            <option>Симметрическая разность</option>
+          </select>
+        </div>
+      </div>
+  
+      {/* Input fields */}
+      <div className="bg-white rounded-lg shadow p-4">
+        {mode === 'Простой ввод' ? (
+          <div className="grid sm:grid-cols-2 gap-4">
             <div>
-              <label className="font-medium">A: выражение</label>
+              <label className="block font-medium mb-1">Множество A</label>
+              <input
+                value={plainA}
+                onChange={(e) => setPlainA(e.target.value)}
+                className="w-full border rounded p-2"
+                placeholder="1,2,3"
+              />
+            </div>
+            <div>
+              <label className="block font-medium mb-1">Множество B</label>
+              <input
+                value={plainB}
+                onChange={(e) => setPlainB(e.target.value)}
+                className="w-full border rounded p-2"
+                placeholder="3,4,5"
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="grid sm:grid-cols-2 gap-6">
+            {/* Set A */}
+            <div>
+              <label className="block font-medium mb-1">A: выражение</label>
               <input
                 value={exprA}
                 onChange={(e) => setExprA(e.target.value)}
-                className="w-full border rounded p-2"
+                className="w-full border rounded p-2 mb-2"
                 placeholder="2*n+1"
               />
-              <div className="flex gap-2 mt-2">
+              <div className="grid grid-cols-2 gap-2">
                 <input
                   value={minA}
                   onChange={(e) => setMinA(e.target.value)}
@@ -163,16 +191,17 @@ export default function SetsPage() {
                 />
               </div>
             </div>
-
+  
+            {/* Set B */}
             <div>
-              <label className="font-medium">B: выражение</label>
+              <label className="block font-medium mb-1">B: выражение</label>
               <input
                 value={exprB}
                 onChange={(e) => setExprB(e.target.value)}
-                className="w-full border rounded p-2"
+                className="w-full border rounded p-2 mb-2"
                 placeholder="n^2"
               />
-              <div className="flex gap-2 mt-2">
+              <div className="grid grid-cols-2 gap-2">
                 <input
                   value={minB}
                   onChange={(e) => setMinB(e.target.value)}
@@ -188,39 +217,29 @@ export default function SetsPage() {
               </div>
             </div>
           </div>
-        </>
-      )}
-
-      {/* Operation selector */}
-      <div className="mb-6">
-        <label className="font-medium">Операция:</label>
-        <select
-          className="ml-2 border p-1 rounded"
-          value={operation}
-          onChange={(e) => setOperation(e.target.value)}
-        >
-          <option>Объединение</option>
-          <option>Пересечение</option>
-          <option>Разность A - B</option>
-          <option>Разность B - A</option>
-          <option>Симметрическая разность</option>
-        </select>
+        )}
       </div>
-
-      {/* Calculate button */}
-      <button
-        onClick={calculate}
-        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-      >
-        Вычислить
-      </button>
-
+  
+      {/* Button */}
+      <div className="text-center mt-6">
+        <button
+          onClick={calculate}
+          className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition"
+        >
+          Вычислить
+        </button>
+      </div>
+  
       {/* Output */}
-      {error && <div className="text-red-600 mt-4">{error}</div>}
+      {error && (
+        <div className="text-red-600 mt-4 text-center font-medium">{error}</div>
+      )}
       {result && (
-        <div className="mt-6 bg-white p-4 rounded">
+        <div className="mt-6 bg-white rounded-lg shadow p-4">
           <div className="font-medium mb-2">Результат:</div>
-          <pre className="whitespace-pre-wrap break-words">{`{ ${result.join(', ')} }`}</pre>
+          <div className="text-gray-800 bg-gray-50 rounded px-4 py-2 border border-gray-200">
+            {`{ ${result.join(', ')} }`}
+          </div>
         </div>
       )}
     </div>
