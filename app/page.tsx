@@ -17,12 +17,12 @@ export default function Home() {
   return (
     <main className="bg-gradient-to-br from-sky-100 to-blue-200 flex flex-col items-center justify-center px-6 py-12">
       <div className="text-center mb-12">
-        <h1 className="text-5xl font-bold text-gray-800 mb-2">
+        <h1 className="text-4xl md:text-5xl font-bold text-gray-800 mb-2">
           <span className="bg-blue-600 text-white px-4 py-1 rounded-xl shadow">
-            Qualkify
+        Qualkify
           </span>
         </h1>
-        <p className="text-lg text-gray-700 mt-4 font-medium">
+        <p className="text-base md:text-lg text-gray-700 mt-4 font-medium">
           Модульный калькулятор по дискретной математике для студентов
         </p>
       </div>

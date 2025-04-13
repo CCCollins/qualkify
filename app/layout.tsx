@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Fira_Code } from "next/font/google";
+import { SiHomebridge } from "react-icons/si";
 import Link from "next/link";
 import "./globals.css";
 
@@ -167,10 +168,10 @@ export default function RootLayout({
         <div className="absolute top-4 left-4 z-50">
           <Link
             href="/"
-            className="bg-blue-600 text-white px-3 py-2 rounded-full shadow hover:bg-blue-700 transition"
+            className="flex items-center gap-2 bg-blue-600 text-white px-2 py-2 rounded-full shadow-lg hover:shadow-xl hover:bg-blue-700 transition-all duration-300 transform hover:-translate-y-1"
             aria-label="На главную"
           >
-            🏠
+            <SiHomebridge className="text-2xl" />
           </Link>
         </div>
         <div className="container mx-auto bg-white shadow-lg rounded-lg p-8 w-full max-w-4xl px-2 sm:px-8 lg:px-10">
