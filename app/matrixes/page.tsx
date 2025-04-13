@@ -131,7 +131,7 @@ const MatrixEditor = ({
   };
 
   return (
-    <div className="mb-6 relative">
+    <div className="mb-6 text-center relative">
       <h3 className="font-semibold mb-2">{label}</h3>
       <div className="relative inline-block">
         {/* Матрица */}
@@ -377,15 +377,15 @@ export default function KirchhoffPage() {
 
       {/* Операции над матрицами */}
       <div className="mt-10">
-        <h2 className="text-2xl font-bold mb-4">Операции над матрицами</h2>
+        <h2 className="text-2xl text-center font-bold mb-4">Операции над матрицами</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <h3 className="text-lg font-semibold mb-2">Матрица A:</h3>
+            <h3 className="text-lg font-semibold text-center mb-2">Матрица A</h3>
             <MatrixEditor label="" matrix={matrixA} setMatrix={setMatrixA} />
           </div>
           <div>
-            <h3 className="text-lg font-semibold mb-2">Матрица B:</h3>
+            <h3 className="text-lg font-semibold text-center mb-2">Матрица B</h3>
             <MatrixEditor label="" matrix={matrixB} setMatrix={setMatrixB} />
           </div>
         </div>
