@@ -286,7 +286,7 @@ export default function KirchhoffPage() {
             const computation = row
               .map((val, k) => `${val} * ${matrixB[k][j]}`)
               .join(' + ');
-            return `   Элемент [${i + 1}, ${j + 1}] = ${computation}`;
+            return ` [${i + 1}, ${j + 1}] = ${computation}`;
           })
         ).flat(),
       ];
@@ -314,7 +314,7 @@ export default function KirchhoffPage() {
             const computation = row
               .map((val, k) => `${val} ∧ ${matrixB[k][j]}`)
               .join(' ∨ ');
-            return `   Элемент [${i + 1}, ${j + 1}] = ${computation}`;
+            return ` [${i + 1}, ${j + 1}] = ${computation}`;
           })
         ).flat(),
       ];
