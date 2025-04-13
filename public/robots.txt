@@ -1,0 +1,9 @@
+# *
+User-agent: *
+Allow: /
+
+# Host
+Host: https://qualkify.vercel.app
+
+# Sitemaps
+Sitemap: https://qualkify.vercel.app/sitemap.xml
