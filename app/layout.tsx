@@ -43,7 +43,7 @@ export const metadata: Metadata = {
     siteName: "Qualkify",
     images: [
       {
-        url: "https://qualkify.vercel.app/og.png",
+        url: "https://qualkify.vercel.app/favicon.ico",
         width: 1200,
         height: 630,
         alt: "Qualkify — Дискретная математика",
@@ -56,12 +56,12 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Qualkify | Дискретная математика",
     description: "Модульный калькулятор для дискретной математики",
-    images: ["https://qualkify.vercel.app/og.png"],
+    images: ["https://qualkify.vercel.app/favicon.ico"],
     creator: "@qualkify",
   },
   icons: {
     icon: "https://qualkify.vercel.app/favicon.ico",
-    apple: "https://qualkify.vercel.app/apple-touch-icon.png",
+    apple: "https://qualkify.vercel.app/favicon.ico",
   },
 };
 
@@ -76,7 +76,7 @@ export default function RootLayout({
         <meta charSet="UTF-8" />
         <link rel="icon" type="image/x-icon" href="https://qualkify.vercel.app/favicon.ico" />
         <link rel="shortcut icon" href="https://qualkify.vercel.app/favicon.ico" />
-        <link rel="apple-touch-icon" href="https://qualkify.vercel.app/favicon.png" />
+        <link rel="apple-touch-icon" href="https://qualkify.vercel.app/favicon.ico" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
         <title>
@@ -102,7 +102,7 @@ export default function RootLayout({
           property="og:description"
           content="Модульный калькулятор по дискретной математике для студентов"
         />
-        <meta property="og:image" content="https://qualkfiy.vercel.app/favicon.png" />
+        <meta property="og:image" content="https://qualkfiy.vercel.app/favicon.ico" />
 
         <meta name="author" content="Qualkify" />
         <meta name="robots" content="index, follow" />
