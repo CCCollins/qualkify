@@ -122,9 +122,12 @@ const MatrixEditor = ({
   };
 
   const updateCell = (i: number, j: number, value: string) => {
-    const updated = matrix.map((row) => [...row]);
-    updated[i][j] = Number(value);
-    setMatrix(updated);
+    if (value === '' || value === '-' || !isNaN(Number(value))) {
+      const updated = matrix.map((row) => [...row]);
+      // @ts-expect-error TypeScript doesn't know that value can be a number or string
+      updated[i][j] = value === '' || value === '-' ? value : Number(value);
+      setMatrix(updated);
+    }
   };
 
   return (
@@ -387,7 +390,7 @@ export default function KirchhoffPage() {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-4 mt-8">
+        <div className="flex justify-center items-center flex-wrap gap-4 mt-8">
           <button
             onClick={handleMultiply}
             className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
