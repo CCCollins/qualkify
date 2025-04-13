@@ -78,6 +78,8 @@ export default function RootLayout({
         <link rel="shortcut icon" href="https://qualkify.vercel.app/favicon.ico" />
         <link rel="apple-touch-icon" href="https://qualkify.vercel.app/favicon.ico" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="yandex-verification" content="ed28aa269cce631d" />
+        <meta name="google-site-verification" content="CrK9H1Ma_dMxFmA3uhTYs9F9flePHdvsTm5FbhmDjE4" />
 
         <title>
           Qualkify | Дискретная математика
