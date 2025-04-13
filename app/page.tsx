@@ -8,6 +8,7 @@ const modules = [
   { name: 'Операции над множествами', path: '/sets', emoji: '📚' },
   { name: 'Алгоритм Дейкстры', path: '/dijkstra', emoji: '🗺️' },
   { name: 'Операции с матрицами', path: '/matrixes', emoji: '🔢' },
+  { name: 'Исходный код', path: 'https://github.com/CCCollins/qualkify', emoji: '🐱' },
 ];
 
 export default function Home() {

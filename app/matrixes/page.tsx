@@ -128,31 +128,62 @@ const MatrixEditor = ({
   };
 
   return (
-    <div className="mb-6">
-      <div className="flex justify-between items-center mb-2">
-        <h3 className="font-semibold">{label}</h3>
-        <div className="flex gap-2">
-          <button onClick={addRow} title="Добавить строку" className="text-sm px-2 py-1 bg-blue-500 text-white rounded">+↧</button>
-          <button onClick={addCol} title="Добавить столбец" className="text-sm px-2 py-1 bg-blue-500 text-white rounded">+⇨</button>
-          <button onClick={removeRow} title="Удалить строку" className="text-sm px-2 py-1 bg-gray-600 text-white rounded">−↧</button>
-          <button onClick={removeCol} title="Удалить столбец" className="text-sm px-2 py-1 bg-gray-600 text-white rounded">−⇨</button>
-        </div>
-      </div>
-      <div className="flex flex-col gap-1">
-        {matrix.map((row, i) => (
-          <div key={i} className="flex gap-1">
-            {row.map((val, j) => (
-              <input
-                key={j}
-                type="number"
-                className="w-12 border rounded text-center"
-                value={val}
-                onChange={(e) => updateCell(i, j, e.target.value)}
-                onFocus={(e) => e.target.select()} // Выделяем текст при фокусе
-              />
-            ))}
+    <div className="mb-6 relative">
+      <h3 className="font-semibold mb-2">{label}</h3>
+      <div className="relative inline-block">
+        {/* Матрица */}
+        <div className="flex flex-col gap-1 relative">
+          {matrix.map((row, i) => (
+            <div key={i} className="flex gap-1">
+              {row.map((val, j) => (
+                <input
+                  key={j}
+                  type="number"
+                  className="w-12 border rounded text-center"
+                  value={val}
+                  onChange={(e) => updateCell(i, j, e.target.value)}
+                  onFocus={(e) => e.target.select()} // Выделяем текст при фокусе
+                />
+              ))}
+            </div>
+          ))}
+
+          {/* Кнопки для добавления/удаления строк */}
+          <div className="absolute -bottom-9 left-1/2 transform -translate-x-1/2 flex gap-2">
+            <button
+              onClick={addRow}
+              title="Добавить строку"
+              className="text-sm px-2 py-1 bg-blue-500 text-white rounded"
+            >
+              +
+            </button>
+            <button
+              onClick={removeRow}
+              title="Удалить строку"
+              className="text-sm px-2 py-1 bg-gray-600 text-white rounded"
+            >
+              −
+            </button>
           </div>
-        ))}
+        </div>
+
+        {/* Кнопки для добавления/удаления столбцов */}
+        <div className="absolute top-1/2 -right-9 transform -translate-y-1/2 flex flex-col gap-2">
+          <button
+            onClick={addCol}
+            title="Добавить столбец"
+            className="text-sm px-2 py-1 bg-blue-500 text-white rounded"
+          >
+            +
+          </button>
+          <button
+            onClick={removeCol}
+            title="Удалить столбец"
+            className="text-sm px-2 py-1 bg-gray-600 text-white rounded"
+          >
+            −
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -348,15 +379,15 @@ export default function KirchhoffPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <h3 className="text-lg font-semibold mb-2">Матрица A:</h3>
-            <MatrixEditor label="Матрица A" matrix={matrixA} setMatrix={setMatrixA} />
+            <MatrixEditor label="" matrix={matrixA} setMatrix={setMatrixA} />
           </div>
           <div>
             <h3 className="text-lg font-semibold mb-2">Матрица B:</h3>
-            <MatrixEditor label="Матрица B" matrix={matrixB} setMatrix={setMatrixB} />
+            <MatrixEditor label="" matrix={matrixB} setMatrix={setMatrixB} />
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-4 mt-4">
+        <div className="flex flex-wrap gap-4 mt-8">
           <button
             onClick={handleMultiply}
             className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"

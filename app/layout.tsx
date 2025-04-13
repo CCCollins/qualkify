@@ -171,7 +171,7 @@ export default function RootLayout({
             🏠
           </Link>
         </div>
-        <div className="bg-white shadow-lg rounded-lg p-8 w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="container mx-auto bg-white shadow-lg rounded-lg p-8 w-full max-w-4xl px-2 sm:px-8 lg:px-10">
           {children}
         </div>
       </body>
