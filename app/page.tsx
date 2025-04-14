@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 const modules = [
   { name: 'Логические выражения', path: '/logic', emoji: '🧠' },
@@ -12,8 +12,6 @@ const modules = [
 ];
 
 export default function Home() {
-  const router = useRouter();
-
   return (
     <main className="bg-white sm:bg-gradient-to-br sm:from-sky-100 sm:to-blue-200 flex flex-col items-center justify-center px-6 py-12">
       <div className="text-center mb-12">
@@ -28,16 +26,23 @@ export default function Home() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-2xl">
-        {modules.map((module) => (
-          <button
-            key={module.name}
-            onClick={() => router.push(module.path)}
-            className="w-full flex items-center gap-4 px-6 py-5 bg-white text-blue-800 font-semibold rounded-xl shadow-md hover:shadow-lg hover:bg-blue-50 border border-blue-100 transition-all duration-200 text-left"
-          >
-            <span className="text-2xl">{module.emoji}</span>
-            <span>{module.name}</span>
-          </button>
-        ))}
+        {modules.map(({ name, path, emoji }) => {
+          const isExternal = path.startsWith('http');
+          const linkProps = isExternal
+            ? { href: path, target: '_blank', rel: 'noopener noreferrer' }
+            : { href: path };
+
+          return (
+            <Link
+              key={name}
+              {...linkProps}
+              className="w-full flex items-center gap-4 px-6 py-5 bg-white text-blue-800 font-semibold rounded-xl shadow-md hover:shadow-lg hover:bg-blue-50 border border-blue-100 transition-all duration-200 text-left"
+            >
+              <span className="text-2xl">{emoji}</span>
+              <span>{name}</span>
+            </Link>
+          );
+        })}
       </div>
 
       <footer className="mt-16 text-sm text-gray-500 text-center">
