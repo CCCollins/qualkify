@@ -199,7 +199,7 @@ export default function RelationsPage() {
                 <input
                     value={formula}
                     onChange={(e) => setFormula(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && analyzeFormulaRelation(analyzeFormulaRelation(formula))}
+                    onKeyDown={(e) => e.key === 'Enter' && setRelationAnalysis(analyzeFormulaRelation(formula))}
                     className="flex-1 border rounded p-3 pr-12 font-medium text-sm md:text-base w-full"
                     placeholder="Пример: (x + y) % 2 === 0"
                 />
