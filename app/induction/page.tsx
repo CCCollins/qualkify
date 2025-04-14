@@ -48,60 +48,51 @@ const preprocess = (expr: string): string => {
     .replace(/\.\.\./g, '');
 };
 
-
-
-
-
-
 const proveSum = (expr: string): string => {
   const [left, right] = expr.split('=').map(s => preprocess(s.trim()));
-  const rawTerms = left.split('+').map(t => t.trim());
+  const terms = left.split('+').map(t => t.trim().replace('...', ''));
+  const generalTerm = terms[terms.length - 1]; // Общий член ряда (например, (2n-1))
 
-  // Находим последний (общий) член, убирая многоточие
-  const generalTerm = rawTerms.findLast(t => !t.includes('...'))?.replace('...', '') ?? '';
-
-  // Шаг 1: База индукции (n = 1)
+  // Шаг 1: База индукции (n=1)
   const baseLeft = nerdamer(generalTerm.replace(/n/g, '1')).evaluate().text();
   const baseRight = nerdamer(right.replace(/n/g, '1')).evaluate().text();
   const baseValid = baseLeft === baseRight;
 
-  // Шаг 2: Предположение индукции (n = k)
-  const terms = rawTerms
-    .filter(t => t !== '...' && t !== '' && !t.includes('...'))
-    .map(t => t.replace(/n/g, 'k'));
-  const sumToK = terms.length ? terms.join(' + ') : generalTerm.replace(/n/g, 'k');
+  // Шаг 2: Предположение индукции (n=k)
+  const sumToK = terms.map(t => t.replace(/n/g, 'k')).join('+');
   const assumedRight = right.replace(/n/g, 'k');
 
-  // Шаг 3: Индукционный переход (n = k + 1)
+  // Шаг 3: Индукционный переход (n=k+1)
   const nextTerm = generalTerm.replace(/n/g, '(k+1)');
-  const leftForK1 = `(${assumedRight}) + (${nextTerm})`;
+  const leftForK1 = `(${assumedRight})+(${nextTerm})`;
   const rightForK1 = right.replace(/n/g, '(k+1)');
 
-  // @ts-expect-error
+  // @ts-expect-error: Метод simplify отсутствует в типах nerdamer, но он существует в runtime
   const difference = nerdamer(leftForK1).subtract(rightForK1).simplify();
   const stepValid = difference.toString() === '0';
 
   return `
 Доказательство для: ${expr}
 
-1️⃣ База индукции (n = 1):
-   • Последний член: ${generalTerm.replace(/n/g, '1')} = ${baseLeft}
+1️⃣ База индукции (n=1):
+   • Вычисляем сумму: ${generalTerm.replace(/n/g, '1')} = ${baseLeft}
    • Правая часть: ${right.replace(/n/g, '1')} = ${baseRight}
    ${baseValid ? '✅ Равенство выполняется' : '❌ Ошибка: равенство неверно'}
 
-2️⃣ Предположение индукции (n = k):
-   ${generalTerm.replace(/n/g, 'k')} = ${assumedRight}
+2️⃣ Предположение индукции:
+   Допустим, для n=k верно:
+   ${sumToK} = ${assumedRight}
 
-3️⃣ Индукционный переход (n = k + 1):
-   • Следующий член: ${nextTerm}
-   • Левая часть: ${leftForK1}
+3️⃣ Индукционный переход (n=k+1):
+   • Добавляем следующий член: ${nextTerm}
+   • Левая часть: ${sumToK} + ${nextTerm} = ${leftForK1}
    • Правая часть: ${rightForK1}
    • Разность: ${difference.toString()}
    ${stepValid ? '✅ Упрощается до 0' : '❌ Не упрощается до 0'}
 
 ${baseValid && stepValid
-    ? '📌 Утверждение доказано для всех натуральных n'
-    : '⚠️ Доказательство не завершено (проверьте шаги)'}
+      ? '📌 Утверждение доказано для всех натуральных n'
+      : '⚠️ Доказательство не завершено (проверьте шаги)'}
 `;
 };
 
