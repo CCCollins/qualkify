@@ -88,50 +88,61 @@ export default function DijkstraProver() {
     if (!graph[start]) {
       throw new Error(`Начальная вершина "${start}" не найдена в графе`);
     }
-
+  
     const distances: Distances = {};
     const predecessors: Predecessors = {};
     const visited = new Set<string>();
     const queue: [number, string][] = [];
     const steps: Step[] = [];
-
+    const textualSteps: string[] = [];
+  
     Object.keys(graph).forEach(node => {
       distances[node] = node === start ? 0 : Infinity;
       predecessors[node] = null;
       queue.push([distances[node], node]);
     });
-
-    queue.sort((a, b) => a[0] - b[0]);
-
+  
     let iterations = 0;
     const maxIterations = 1000;
-
+  
     while (queue.length > 0 && iterations < maxIterations) {
       iterations++;
       queue.sort((a, b) => a[0] - b[0]);
       const [currentDistance, currentNode] = queue.shift()!;
-
+  
       if (visited.has(currentNode)) continue;
       visited.add(currentNode);
-
+  
       steps.push({ node: currentNode, distances: { ...distances } });
-
+  
+      textualSteps.push(`🔵 V${currentNode}: λ=${currentDistance}`);
+  
       for (const neighbor in graph[currentNode]) {
-        const distance = currentDistance + graph[currentNode][neighbor];
-
-        if (distance < distances[neighbor]) {
-          distances[neighbor] = distance;
+        const old = distances[neighbor];
+        const newDist = currentDistance + graph[currentNode][neighbor];
+  
+        textualSteps.push(
+          `🔁 V${neighbor}: min(λ=${old}, λ(${currentNode})=${currentDistance} + вес(${currentNode}-${neighbor})=${graph[currentNode][neighbor]}) = ${Math.min(old, newDist)}`
+        );
+  
+        if (newDist < distances[neighbor]) {
+          distances[neighbor] = newDist;
           predecessors[neighbor] = currentNode;
-          queue.push([distance, neighbor]);
+          textualSteps.push(`✅ Обновляем λ(${neighbor}) = ${newDist}`);
+          queue.push([newDist, neighbor]);
+        } else {
+          textualSteps.push(`⛔ Не обновляем λ(${neighbor})`);
         }
       }
+  
+      textualSteps.push('—'.repeat(3));
     }
-
+  
     if (iterations >= maxIterations) {
       throw new Error('Превышено максимальное количество итераций');
     }
-
-    return { distances, predecessors, steps };
+  
+    return { distances, predecessors, steps, textualSteps };
   };
 
 
@@ -166,35 +177,55 @@ export default function DijkstraProver() {
     try {
       setIsCalculating(true);
       setOutput('Вычисляем...');
-
+  
       setTimeout(() => {
         try {
           const graph = parseGraph(graphInput);
           setGraphViz(generateGraphViz(graph));
-
-          const { distances, predecessors, steps } = dijkstra(graph, startNode);
+  
+          const { distances, predecessors, steps, textualSteps } = dijkstra(graph, startNode);
           setSteps(steps);
           const path = reconstructPath(predecessors, endNode);
           const nodes = Object.keys(graph).sort();
-
+  
           setTableData(formatTableData(steps, nodes));
-
-          let result = `Алгоритм Дейкстры\n\n`;
-          result += `Граф: ${graphInput}\n`;
-          result += `Начальная вершина: ${startNode}\n`;
-          result += `Конечная вершина: ${endNode}\n\n`;
-          result += `Кратчайший путь: ${path.join(' → ')}\n`;
-          result += `Длина пути: ${distances[endNode]}\n`;
-
+  
+          // Добавим прямой ход
+          let result = `🧩 Прямой ход:\n${textualSteps.map(step => step.replace(/Infinity/g, '∞')).join('\n')}\n\n`;
+  
+          // Добавим обратный ход
+          result += `🔁 Обратный ход (восстановление пути):\n`;
+  
+          const reverseTrace = [];
+          let current = endNode;
+          const traceSteps = [];
+  
+          while (current !== null && predecessors[current]) {
+            const prev = predecessors[current];
+            const lambdaK = distances[current];
+            const lkj = graph[prev!][current];
+            const lambdaJ = lambdaK - lkj;
+  
+            traceSteps.push(
+              `λ(${prev}) = λ(${current}) - l(${prev}, ${current}) = ${lambdaK} - ${lkj} = ${lambdaJ}`
+            );
+            reverseTrace.push(`${prev} → ${current}`);
+            current = prev!;
+          }
+  
+          result += traceSteps.reverse().join('\n') + '\n';
+          result += `\n📍 Кратчайший путь: ${path.join(' → ')}\n`;
+          result += `📏 Длина пути: ${distances[endNode]}\n\n`;
+  
           setOutput(result);
         } catch (e) {
-          setOutput(`Ошибка: ${e instanceof Error ? e.message : 'Неизвестная ошибка'}`);
+          setOutput(`❌ Ошибка: ${e instanceof Error ? e.message : 'Неизвестная ошибка'}`);
         } finally {
           setIsCalculating(false);
         }
       }, 100);
     } catch (e) {
-      setOutput(`Ошибка: ${e instanceof Error ? e.message : 'Неизвестная ошибка'}`);
+      setOutput(`❌ Ошибка: ${e instanceof Error ? e.message : 'Неизвестная ошибка'}`);
       setIsCalculating(false);
     }
   };
@@ -297,7 +328,7 @@ export default function DijkstraProver() {
 
         {tableData.headers.length > 0 && (
           <div className="mt-6">
-            <h2 className="text-xl font-semibold mb-3">Шаги выполнения алгоритма</h2>
+            <h2 className="text-xl font-semibold mb-3">Таблица прямого хода</h2>
             <div className="overflow-x-auto">
                 <table className="w-full border-collapse">
                     <thead>
