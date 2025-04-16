@@ -112,7 +112,7 @@ const proveDivisibility = (expr: string): string => {
   const processed = preprocess(expression);
 
   // Шаг 1: База индукции (n=0)
-  const baseExpr = nerdamer(processed.replace(/n/g, '0')).evaluate().text();
+  const baseExpr = nerdamer(processed.replace(/n/g, '1')).evaluate().text();
   const baseMod = nerdamer(`mod(${baseExpr}, ${divisor})`).evaluate().text();
   const baseValid = baseMod === '0';
 
@@ -132,8 +132,8 @@ const proveDivisibility = (expr: string): string => {
   let resultText = `Доказательство делимости: ${expr}\n\n`;
 
   // Шаг 1: База индукции
-  resultText += `1️⃣ База индукции (n=0):\n`;
-  resultText += `   • f(0) = ${baseExpr}\n`;
+  resultText += `1️⃣ База индукции (n=1):\n`;
+  resultText += `   • f(1) = ${baseExpr}\n`;
   resultText += `   • Остаток от деления на ${divisor}: ${baseMod}\n`;
   resultText += baseValid ? `   ✅ Делится без остатка\n\n` : `   ❌ Не делится\n\n`;
 

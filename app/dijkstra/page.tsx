@@ -166,7 +166,7 @@ export default function DijkstraProver() {
     const headers = ['Шаг', ...nodes];
     const rows = steps.map((step, stepIndex) => {
       return [
-        stepIndex.toString(),
+        (stepIndex + 1).toString(),
         ...nodes.map(node => step.distances[node] === Infinity ? '∞' : step.distances[node].toString())
       ];
     });
