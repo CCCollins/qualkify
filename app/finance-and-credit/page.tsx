@@ -4,8 +4,8 @@ import Link from 'next/link';
 
 const modules = [
   { name: 'Coming Soon...', path: '/', emoji: '💰' },
-  // { name: 'Налоги', path: '/finance/interest', emoji: '💰' },
-  // { name: 'Кредитные расчёты', path: '/finance/loans', emoji: '🏦' },
+  // { name: 'Налоги', path: '/finance-and-credit/interest', emoji: '💰' },
+  // { name: 'Кредитные расчёты', path: '/finance-and-credit/loans', emoji: '🏦' },
 ];
 
 export default function Home() {

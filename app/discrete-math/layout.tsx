@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Qualkify | Дискретная математика',
     description: 'Раздел калькулятора по дискретной математике: логические выражения, графы, множества и другие темы.',
-    url: 'https://qualkify.vercel.app/dm',
+    url: 'https://qualkify.vercel.app/discrete-math',
     siteName: 'Qualkify',
     type: 'website',
     locale: 'ru_RU',

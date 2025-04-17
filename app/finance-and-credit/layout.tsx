@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Qualkify | Финансы и кредит',
     description: 'Финансовый модуль: кредиты, проценты, расчёты платежей.',
-    url: 'https://qualkify.vercel.app/finance',
+    url: 'https://qualkify.vercel.app/finance-and-credit',
     siteName: 'Qualkify',
     type: 'website',
     locale: 'ru_RU',

@@ -3,8 +3,12 @@
 import Link from 'next/link';
 
 const modules = [
-  { name: 'Средние значения', path: '/stats/intervals', emoji: '📈' },
-  { name: 'Анализ дисперсий', path: '/stats/variance', emoji: '📉' },
+  { name: 'Логические выражения', path: '/discrete-math/logic', emoji: '🔣' },
+  { name: 'Математическая индукция', path: '/discrete-math/induction', emoji: '🔁' },
+  { name: 'Операции над множествами', path: '/discrete-math/sets', emoji: '📚' },
+  { name: 'Алгоритм Дейкстры', path: '/discrete-math/dijkstra', emoji: '🗺️' },
+  { name: 'Операции с матрицами', path: '/discrete-math/matrixes', emoji: '🔢' },
+  { name: 'Анализ отношений', path: '/discrete-math/relations', emoji: '🧩' },
 ];
 
 export default function Home() {
@@ -19,7 +23,7 @@ export default function Home() {
           </Link>
         </h1>
         <p className="text-base md:text-lg text-gray-700 mt-4 font-medium">
-          Модульный калькулятор по статистике для студентов
+          Модульный калькулятор по дискретной математике для студентов
         </p>
       </div>
 

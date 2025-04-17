@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Qualkify | Статистика',
     description: 'Темы по статистике: дисперсия, средние, СКО и многое другое.',
-    url: 'https://qualkify.vercel.app/stats',
+    url: 'https://qualkify.vercel.app/statistics',
     siteName: 'Qualkify',
     type: 'website',
     locale: 'ru_RU',

@@ -39,9 +39,52 @@ export default function IntervalsPage() {
   const [ModaInterval, setModaInterval] = useState<string>('');
   const [Median, setMedian] = useState<number | null>(null);
   const [MedianInterval, setMedianInterval] = useState<string>('');
-  const [chartData, setChartData] = useState<any>(null);
+  interface ChartData {
+    labels: string[];
+    polygon: {
+      labels: string[];
+      datasets: {
+        label: string;
+        data: number[];
+        borderColor: string;
+        backgroundColor: string;
+        tension: number;
+      }[];
+    };
+    cumulative: {
+      labels: string[];
+      datasets: {
+        type: 'bar';
+        label: string;
+        data: number[];
+        backgroundColor: string;
+      }[];
+    };
+    histogram: {
+      labels: string[];
+      datasets: (
+        | {
+            type: 'bar';
+            label: string;
+            data: number[];
+            backgroundColor: string;
+            borderColor: string;
+            borderWidth: number;
+          }
+        | {
+            type: 'line';
+            label: string;
+            data: number[];
+            borderColor: string;
+            backgroundColor: string;
+            tension: number;
+          }
+      )[];
+    };
+  }
+
+  const [chartData, setChartData] = useState<ChartData | null>(null);
   const outputRef = useRef<HTMLDivElement>(null);
-  const copyTooltip = useRef<HTMLSpanElement>(null);
 
   const round = (num: number) => {
     return precision !== null ? +num.toFixed(precision) : num;
@@ -288,7 +331,7 @@ export default function IntervalsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
           <div>
             <h2 className="font-semibold mb-2">📉 Кумулята</h2>
-            <Line data={chartData.cumulative} />
+            <Bar data={chartData.cumulative} />
           </div>
 
           <div>
@@ -296,10 +339,12 @@ export default function IntervalsPage() {
             <Line data={chartData.polygon} />
           </div>
 
-          <div className="md:col-span-2">
+            <div className="md:col-span-2">
             <h2 className="font-semibold mb-2">📊 Гистограмма + Полигон</h2>
+            {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
+            {/* @ts-ignore */}
             <Bar data={chartData.histogram} />
-          </div>
+            </div>
         </div>
       )}
     </main>
