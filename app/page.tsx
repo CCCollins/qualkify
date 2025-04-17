@@ -2,71 +2,115 @@
 
 import Link from 'next/link';
 
-const modules = [
-  { name: 'Логические выражения', path: '/logic', emoji: '🧠' },
-  { name: 'Математическая индукция', path: '/induction', emoji: '🧮' },
-  { name: 'Операции над множествами', path: '/sets', emoji: '📚' },
-  { name: 'Алгоритм Дейкстры', path: '/dijkstra', emoji: '🗺️' },
-  { name: 'Операции с матрицами', path: '/matrixes', emoji: '🔢' },
-  { name: 'Анализ отношений', path: '/relations', emoji: '🧩' },
+const categories = [
+  {
+    name: 'Дискретная математика',
+    path: '/dm',
+    icon: '🧠',
+    color: 'from-blue-100 to-blue-50',
+    text: 'text-blue-800',
+    modules: [
+      { name: 'Логические выражения', path: '/dm/logic', emoji: '🔣' },
+      { name: 'Математическая индукция', path: '/dm/induction', emoji: '🔁' },
+      { name: 'Операции над множествами', path: '/dm/sets', emoji: '📚' },
+      { name: 'Анализ отношений', path: '/dm/relations', emoji: '🧩' },
+      { name: 'Алгоритм Дейкстры', path: '/dm/dijkstra', emoji: '🗺️' },
+      { name: 'Операции с матрицами', path: '/dm/matrixes', emoji: '🔢' },
+    ],
+  },
+  {
+    name: 'Статистика',
+    path: '/stats',
+    icon: '📊',
+    color: 'from-green-100 to-green-50',
+    text: 'text-green-800',
+    modules: [
+      { name: 'Интервальный вариационный ряд', path: '/stats/intervals', emoji: '📈' },
+      { name: 'Анализ дисперсий', path: '/stats/variance', emoji: '📉' },
+    ],
+  },
+  {
+    name: 'Финансы и кредит',
+    path: '/finance',
+    icon: '💸',
+    color: 'from-yellow-100 to-yellow-50',
+    text: 'text-yellow-800',
+    modules: [
+      { name: 'Coming Soon...', path: '/', emoji: '💰' },
+      // { name: 'Проценты и аннуитеты', path: '/finance/interest', emoji: '💰' },
+      // { name: 'Кредитные расчёты', path: '/finance/loans', emoji: '🏦' },
+    ],
+  },
 ];
 
 export default function Home() {
   return (
-    <main className="bg-white sm:bg-gradient-to-br sm:from-sky-100 sm:to-blue-200 flex flex-col items-center justify-center px-6 py-12">
-      <div className="text-center mb-12">
-        <h1 className="text-4xl md:text-5xl font-bold text-gray-800 mb-2">
+    <main className="bg-white sm:bg-gradient-to-br from-sky-100 to-blue-200 px-4 py-8 sm:px-6 sm:py-10">
+      <div className="text-center mb-4">
+        <h1 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-2">
           <span className="bg-blue-600 text-white px-4 py-1 rounded-xl shadow">
             Qualkify
           </span>
         </h1>
         <p className="text-base md:text-lg text-gray-700 mt-4 font-medium">
-          Модульный калькулятор по дискретной математике для студентов
+          Модульный калькулятор для студентов
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-2xl">
-        {modules.map(({ name, path, emoji }) => {
-          const isExternal = path.startsWith('http');
-          const linkProps = isExternal
-            ? { href: path, target: '_blank', rel: 'noopener noreferrer' }
-            : { href: path };
-
-          return (
-            <Link
-              key={name}
-              {...linkProps}
-              className="w-full flex items-center gap-4 px-6 py-5 bg-white text-blue-800 font-semibold rounded-xl shadow-md hover:shadow-lg hover:bg-blue-50 border border-blue-100 transition-all duration-200 text-left"
-            >
-              <span className="text-2xl">{emoji}</span>
-              <span>{name}</span>
+      <div className="space-y-7 sm:space-y-5 max-w-6xl mx-auto">
+        {categories.map(({ name, icon, color, text, modules, path }) => (
+          <section
+            key={name}
+            className={`bg-gradient-to-br ${color} p-4 rounded-2xl shadow`}
+          >
+            <Link href={path} className="group block w-fit">
+              <h2 className={`text-xl sm:text-2xl font-bold mb-4 flex items-center gap-2 ${text} transition`}>
+                <span className="text-2xl">{icon}</span> {name}
+              </h2>
             </Link>
-          );
-        })}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+              {modules.map(({ name, path, emoji }) => (
+                <Link
+                  key={name}
+                  href={path}
+                  className="w-full flex items-center gap-2 px-3 py-2 bg-white text-gray-800 font-semibold rounded-xl shadow-md hover:shadow-lg hover:bg-gray-50 border border-gray-200 transition-all duration-200 text-left"
+                >
+                  <span className="text-xl sm:text-2xl group-hover:scale-[1.05] transition-transform">
+                    {emoji}
+                  </span>
+                  <span className="text-sm sm:text-base">{name}</span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        ))}
       </div>
 
-      <footer className="mt-16 text-sm text-gray-500 text-center flex items-center justify-center gap-2">
-        © {new Date().getFullYear()} Qualkify 
-        <Link
-          href="https://github.com/CCCollins/qualkify"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-gray-500 hover:text-gray-700 transition-colors"
-          aria-label="GitHub Repository"
-        >
-          <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        fill="currentColor"
-        className="w-5 h-5"
+      <footer className="mt-7 pt-6 text-sm text-gray-500 text-center">
+        <div className="flex justify-center items-center gap-2">
+          © {new Date().getFullYear()} Qualkify
+          <Link
+            href="https://github.com/CCCollins/qualkify"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-gray-700 transition"
+            aria-label="GitHub Repository"
           >
-        <path
-          fillRule="evenodd"
-          d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.868-.014-1.703-2.782.605-3.369-1.342-3.369-1.342-.454-1.154-1.11-1.461-1.11-1.461-.908-.62.069-.608.069-.608 1.004.07 1.532 1.032 1.532 1.032.892 1.529 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.983 1.03-2.682-.103-.253-.447-1.27.098-2.645 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0 1 12 6.844c.85.004 1.705.115 2.504.337 1.91-1.294 2.75-1.025 2.75-1.025.545 1.375.201 2.392.099 2.645.64.699 1.03 1.591 1.03 2.682 0 3.842-2.337 4.687-4.565 4.936.36.31.682.92.682 1.855 0 1.338-.012 2.419-.012 2.747 0 .267.18.578.688.48C19.137 20.165 22 16.418 22 12c0-5.523-4.477-10-10-10z"
-          clipRule="evenodd"
-        />
-          </svg>
-        </Link>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+              className="w-4 h-4"
+            >
+              <path
+                fillRule="evenodd"
+                d="M12 2C6.48 2 2 6.48 2 12c0 4.42 2.87 8.17 6.84 9.49.5.09.68-.22.68-.48 0-.24-.01-.87-.01-1.7-2.78.6-3.37-1.34-3.37-1.34-.46-1.15-1.11-1.46-1.11-1.46-.91-.62.07-.61.07-.61 1.01.07 1.53 1.03 1.53 1.03.89 1.53 2.34 1.09 2.91.83.09-.65.35-1.09.64-1.34-2.22-.25-4.56-1.11-4.56-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.03A9.57 9.57 0 0 1 12 6.84c.86.01 1.72.12 2.52.34 1.91-1.3 2.75-1.03 2.75-1.03.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.69-4.57 4.94.36.31.68.92.68 1.86 0 1.34-.01 2.42-.01 2.75 0 .27.18.58.69.48A10.02 10.02 0 0 0 22 12c0-5.52-4.48-10-10-10z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </Link>
+        </div>
       </footer>
     </main>
   );
