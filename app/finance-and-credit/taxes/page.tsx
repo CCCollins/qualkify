@@ -44,13 +44,15 @@ export default function TaxesPage() {
       const start = new Date(startDate);
       const end = new Date(endDate);
       if (start > end) return 0;
-      return Math.min(
-        Math.max((end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1, 1),
-        12
+  
+      return (
+        (end.getFullYear() - start.getFullYear()) * 12 +
+        (end.getMonth() - start.getMonth()) + 1
       );
     }
-
-    return Math.min(Math.max(parseInt(manualMonths) || 0, 1));
+  
+    const parsed = parseInt(manualMonths.replace(',', '.'));
+    return isNaN(parsed) || parsed < 0 ? 0 : parsed;
   };
 
   const months = calcMonths();
