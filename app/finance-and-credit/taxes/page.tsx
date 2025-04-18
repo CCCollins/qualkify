@@ -34,6 +34,21 @@ export default function TaxesPage() {
   const [rf, setRF] = useState('');
   const [funds, setFunds] = useState('');
 
+  const [useDetailedCost, setUseDetailedCost] = useState(false);
+  
+  // Расширенные поля
+  const [buildingCost, setBuildingCost] = useState('');
+  const [buildingYears, setBuildingYears] = useState('');
+  const [equipmentCost, setEquipmentCost] = useState('');
+  const [equipmentYears, setEquipmentYears] = useState('');
+  const [materialCost, setMaterialCost] = useState('');
+  const [waste, setWaste] = useState('');
+  const [salaryFund, setSalaryFund] = useState('');
+  const [socialRate, setSocialRate] = useState('30');
+  const [creditAmount, setCreditAmount] = useState('');
+  const [creditRate, setCreditRate] = useState('');
+  const [creditMonths, setCreditMonths] = useState('');
+
   const parse = (val: string) => parseFloat(val.replace(',', '.')) || 0;
 
   const input = (props: React.InputHTMLAttributes<HTMLInputElement>) =>
@@ -76,38 +91,6 @@ export default function TaxesPage() {
     const tax = isPercent ? (b * r / 100 * m) : (b * r * m);
     const total = b + tax;
     return { tax, total };
-  };
-
-  const calcProfit = () => {
-    const vr = parse(revenue);
-    const kn = parse(indirect);
-    const ss = parse(cost);
-    const ur = parse(mgmt);
-    const kr = parse(comm);
-    const dvo = parse(nonOpInc);
-    const rvo = parse(nonOpExp);
-    const taxSum = parse(taxes);
-    const rfSum = parse(rf);
-    const fundSum = parse(funds);
-
-    const vp = vr - kn - ss;
-    const pp = vp - ur - kr;
-    const deltaVO = dvo - rvo;
-    const preTax = pp + deltaVO;
-    const np = preTax - taxSum;
-    const unrealized = np - rfSum - fundSum;
-
-    return {
-      vp, pp, deltaVO, preTax, np, unrealized,
-      formulas: {
-        vp: `ВП = ВР - КН - СС = ${vr} - ${kn} - ${ss} = ${vp}`,
-        pp: `ПП = ВП - УР - КР = ${vp} - ${ur} - ${kr} = ${pp}`,
-        deltaVO: `ΔВО = ДВО - РВО = ${dvo} - ${rvo} = ${deltaVO}`,
-        preTax: `Пдо нал.обл. = ПП ± ΔВО = ${pp} + ${deltaVO} = ${preTax}`,
-        np: `ЧП = Пдо нал.обл. - ∑Н = ${preTax} - ${taxSum} = ${np}`,
-        unrealized: `НерП = ЧП - РФ - Ф = ${np} - ${rfSum} - ${fundSum} = ${unrealized}`
-      }
-    };
   };
 
   const renderUniversal = () => {
@@ -187,6 +170,7 @@ export default function TaxesPage() {
         <div className="mt-4 bg-white p-3 rounded shadow text-sm space-y-1">
           <p><strong>Учтено месяцев:</strong> {months}</p>
           <p><strong>Сумма налога:</strong> {res.tax.toFixed(2).replace('.', ',')} ₽</p>
+          <p><strong>Итого с налогом:</strong> {res.total.toFixed(2).replace('.', ',')} ₽</p>
           <p className="text-gray-500 text-xs">
             Формула: налог = НБ × СН × (месяцы / 12)
           </p>
@@ -196,31 +180,116 @@ export default function TaxesPage() {
   };
 
   const renderProfit = () => {
-    const r = calcProfit();
-
+    const p = parse;
+  
+    const AO = (p(buildingCost) / p(buildingYears)) + (p(equipmentCost) / p(equipmentYears));
+    const MZ = p(materialCost) - p(waste);
+    const FOT = p(salaryFund);
+    const OSN = FOT * p(socialRate) / 100;
+    const PR = p(creditAmount) * (p(creditRate) / 100) * (p(creditMonths) / 12);
+    const detailedCost = AO + MZ + FOT + OSN + PR;
+  
+    const effectiveCost = useDetailedCost ? detailedCost : p(cost);
+  
+    const vr = p(revenue);
+    const kn = p(indirect);
+    const ur = p(mgmt);
+    const kr = p(comm);
+    const dvo = p(nonOpInc);
+    const rvo = p(nonOpExp);
+    const taxSum = p(taxes);
+    const deductions = p(rf) + p(funds);
+  
+    const vp = vr - kn - effectiveCost;
+    const pp = vp - ur - kr;
+    const deltaVO = dvo - rvo;
+    const preTax = pp + deltaVO;
+    const np = preTax - taxSum;
+    const unrealized = np - deductions;
+  
+    const formulas = {
+      vp: `ВП = ВР - КН - СС = ${vr} - ${kn} - ${effectiveCost} = ${vp}`,
+      pp: `ПП = ВП - УР - КР = ${vp} - ${ur} - ${kr} = ${pp}`,
+      deltaVO: `ΔВО = ДВО - РВО = ${dvo} - ${rvo} = ${deltaVO}`,
+      preTax: `П до н/о = ПП ± ΔВО = ${pp} + ${deltaVO} = ${preTax}`,
+      np: `ЧП = П до н/о - ∑Н = ${preTax} - ${taxSum} = ${np}`,
+      unrealized: `НерП = ЧП - РФ - Ф = ${np} - ${deductions} = ${unrealized}`
+    };
+  
     return (
       <>
         <h2 className="text-xl font-bold mb-3">Налог на прибыль</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <label>Выручка от реализации (ВР){input({ value: revenue, onChange: (e: React.ChangeEvent<HTMLInputElement>) => setRevenue(e.target.value) })}</label>
-          <label>Косвенные налоги (КН){input({ value: indirect, onChange: (e: React.ChangeEvent<HTMLInputElement>) => setIndirect(e.target.value) })}</label>
-          <label>Себестоимость (СС){input({ value: cost, onChange: (e: React.ChangeEvent<HTMLInputElement>) => setCost(e.target.value) })}</label>
-          <label>Управленческие расходы (УР){input({ value: mgmt, onChange: (e: React.ChangeEvent<HTMLInputElement>) => setMgmt(e.target.value) })}</label>
-          <label>Коммерческие расходы (КР){input({ value: comm, onChange: (e: React.ChangeEvent<HTMLInputElement>) => setComm(e.target.value) })}</label>
-          <label>Внереализационные доходы (ДВО){input({ value: nonOpInc, onChange: (e: React.ChangeEvent<HTMLInputElement>) => setNonOpInc(e.target.value) })}</label>
-          <label>Внереализационные расходы (РВО){input({ value: nonOpExp, onChange: (e: React.ChangeEvent<HTMLInputElement>) => setNonOpExp(e.target.value) })}</label>
-          <label>Налоги (∑Н){input({ value: taxes, onChange: (e: React.ChangeEvent<HTMLInputElement>) => setTaxes(e.target.value) })}</label>
-          <label>РФ отчисления{input({ value: rf, onChange: (e: React.ChangeEvent<HTMLInputElement>) => setRF(e.target.value) })}</label>
-          <label>Фонды{input({ value: funds, onChange: (e: React.ChangeEvent<HTMLInputElement>) => setFunds(e.target.value) })}</label>
+  
+        <div className="flex items-center gap-2 mb-4 text-sm">
+          <input
+            type="checkbox"
+            checked={useDetailedCost}
+            onChange={() => setUseDetailedCost(!useDetailedCost)}
+            id="useDetailedCost"
+          />
+          <label htmlFor="useDetailedCost">Использовать расширенный расчет себестоимости</label>
         </div>
-
-        <div className="mt-4 bg-white p-3 rounded shadow text-sm space-y-1">
-          <p><strong>Валовая прибыль:</strong> {r.vp.toFixed(2)} <br /><span className="text-gray-500 text-xs">{r.formulas.vp}</span></p>
-          <p><strong>Процент от прибыли:</strong> {r.pp.toFixed(2)} <br /><span className="text-gray-500 text-xs">{r.formulas.pp}</span></p>
-          <p><strong>Процент от внереализационных операций:</strong> {r.deltaVO.toFixed(2)} <br /><span className="text-gray-500 text-xs">{r.formulas.deltaVO}</span></p>
-          <p><strong>Прибыль до налогообложения:</strong> {r.preTax.toFixed(2)} <br /><span className="text-gray-500 text-xs">{r.formulas.preTax}</span></p>
-          <p><strong>Чистая прибыль:</strong> {r.np.toFixed(2)} <br /><span className="text-gray-500 text-xs">{r.formulas.np}</span></p>
-          <p><strong>Нереализованная прибыль:</strong> {r.unrealized.toFixed(2)} <br /><span className="text-gray-500 text-xs">{r.formulas.unrealized}</span></p>
+  
+        <h3 className="font-semibold text-base mb-1">Основные параметры</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <label>Выручка от реализации (ВР){input({ value: revenue, onChange: e => setRevenue(e.target.value) })}</label>
+          <label>Косвенные налоги (КН){input({ value: indirect, onChange: e => setIndirect(e.target.value) })}</label>
+  
+          {!useDetailedCost ? (
+            <label>Себестоимость (СС){input({ value: cost, onChange: e => setCost(e.target.value) })}</label>
+          ) : null}
+        </div>
+  
+        {useDetailedCost && (
+          <>
+            <h3 className="font-semibold text-base mt-6 mb-1">Расширенный расчет себестоимости</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label>Здание, стоимость{input({ value: buildingCost, onChange: e => setBuildingCost(e.target.value) })}</label>
+              <label>Срок службы здания (лет){input({ value: buildingYears, onChange: e => setBuildingYears(e.target.value) })}</label>
+              <label>Оборудование, стоимость{input({ value: equipmentCost, onChange: e => setEquipmentCost(e.target.value) })}</label>
+              <label>Срок службы оборудования{input({ value: equipmentYears, onChange: e => setEquipmentYears(e.target.value) })}</label>
+              <label>Закупка сырья{input({ value: materialCost, onChange: e => setMaterialCost(e.target.value) })}</label>
+              <label>Возвратные отходы{input({ value: waste, onChange: e => setWaste(e.target.value) })}</label>
+              <label>ФОТ{input({ value: salaryFund, onChange: e => setSalaryFund(e.target.value) })}</label>
+              <label>Соц. отчисления (%) {input({ value: socialRate, onChange: e => setSocialRate(e.target.value) })}</label>
+              <label>Кредит {input({ value: creditAmount, onChange: e => setCreditAmount(e.target.value) })}</label>
+              <label>Ставка (%) {input({ value: creditRate, onChange: e => setCreditRate(e.target.value) })}</label>
+              <label>Срок (мес) {input({ value: creditMonths, onChange: e => setCreditMonths(e.target.value) })}</label>
+            </div>
+          </>
+        )}
+  
+        <h3 className="font-semibold text-base mt-6 mb-1">Прочие расходы и удержания</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <label>Управленческие расходы (УР){input({ value: mgmt, onChange: e => setMgmt(e.target.value) })}</label>
+          <label>Коммерческие расходы (КР){input({ value: comm, onChange: e => setComm(e.target.value) })}</label>
+          <label>Внереализационные доходы (ДВО){input({ value: nonOpInc, onChange: e => setNonOpInc(e.target.value) })}</label>
+          <label>Внереализационные расходы (РВО){input({ value: nonOpExp, onChange: e => setNonOpExp(e.target.value) })}</label>
+          <label>Налоги (∑Н){input({ value: taxes, onChange: e => setTaxes(e.target.value) })}</label>
+          <label>РФ + Фонды{input({ value: (p(rf) + p(funds)).toString(), onChange: e => {
+            const [rfPart, fundPart] = e.target.value.split('+').map(v => v.trim());
+            setRF(rfPart || '0');
+            setFunds(fundPart || '0');
+          } })}</label>
+        </div>
+  
+        {useDetailedCost && (
+          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded text-sm space-y-1">
+            <h4 className="font-semibold">🧾 Расчёт себестоимости:</h4>
+            <p>АО: {AO.toFixed(2)} млн • МЗ: {MZ.toFixed(2)} млн • ФОТ: {FOT.toFixed(2)} млн</p>
+            <p>ОСН: {OSN.toFixed(2)} млн • Прочее: {PR.toFixed(2)} млн</p>
+            <p className="font-semibold">СС: {detailedCost.toFixed(2)} млн</p>
+          </div>
+        )}
+  
+        <div className="mt-6 p-4 bg-white rounded shadow text-sm space-y-1">
+          <h4 className="font-semibold">📊 Финансовый результат:</h4>
+          <p>Валовая прибыль: {vp.toFixed(2)} <br /><span className="text-gray-500 text-xs">{formulas.vp}</span></p>
+          <p>Прибыль от продаж: {pp.toFixed(2)} <br /><span className="text-gray-500 text-xs">{formulas.pp}</span></p>
+          <p>Процент от внереализационных операций: {deltaVO.toFixed(2)} <br /><span className="text-gray-500 text-xs">{formulas.deltaVO}</span></p>
+          <p>Прибыль до налогообложения: {preTax.toFixed(2)} <br /><span className="text-gray-500 text-xs">{formulas.preTax}</span></p>
+          <p>Чистая прибыль: {np.toFixed(2)} <br /><span className="text-gray-500 text-xs">{formulas.np}</span></p>
+          <p>Нереализованная прибыль: {unrealized.toFixed(2)} <br /><span className="text-gray-500 text-xs">{formulas.unrealized}</span></p>
         </div>
       </>
     );
@@ -277,6 +346,55 @@ export default function TaxesPage() {
             <li>2.5% от кадастровой стоимости (КС) — для отдельных видов имущества</li>
           </ul>
           <p className="text-xs text-gray-500">Источник: <a className="text-blue-600 underline" href="https://www.consultant.ru/document/cons_doc_LAW_28165/ce7353ef8711e5b40f860860b7b77e724c028b65/" target="_blank" rel="noopener noreferrer">НК РФ ч. 2, гл. 30, ст. 380</a></p>
+        </section>
+
+        <section className="mt-6">
+          <h3 className="font-semibold text-base mb-2">Прогрессивная шкала НДФЛ</h3>
+
+          <div className="overflow-x-auto">
+            <table className="text-sm border border-gray-200">
+              <thead className="bg-gray-100 text-gray-700 text-left">
+                <tr>
+                  <th className="border px-3 py-2">Среднемесячный доход (млн ₽)</th>
+                  <th className="border px-3 py-2">Среднегодовой доход (млн ₽)</th>
+                  <th className="border px-3 py-2">Ставка</th>
+                </tr>
+              </thead>
+              <tbody className="text-gray-700">
+                <tr>
+                  <td className="border px-3 py-2">до 0,2</td>
+                  <td className="border px-3 py-2">до 2,4</td>
+                  <td className="border px-3 py-2">13%</td>
+                </tr>
+                <tr>
+                  <td className="border px-3 py-2">0,2 – 0,4167</td>
+                  <td className="border px-3 py-2">2,4 – 5</td>
+                  <td className="border px-3 py-2">15%</td>
+                </tr>
+                <tr>
+                  <td className="border px-3 py-2">0,4 – 1,67</td>
+                  <td className="border px-3 py-2">5 – 20</td>
+                  <td className="border px-3 py-2">18%</td>
+                </tr>
+                <tr>
+                  <td className="border px-3 py-2">1,67 – 4,17</td>
+                  <td className="border px-3 py-2">20 – 50</td>
+                  <td className="border px-3 py-2">20%</td>
+                </tr>
+                <tr>
+                  <td className="border px-3 py-2">от 4,17</td>
+                  <td className="border px-3 py-2">от 50</td>
+                  <td className="border px-3 py-2">22%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p className="text-xs text-gray-500 mt-2">
+            Источник: <a className="text-blue-600 underline" href="https://www.consultant.ru/document/cons_doc_LAW_28165/3e4bbd6dd9fb5dd4e9394f447653506e1d6fa3a9/" target="_blank" rel="noopener noreferrer">
+              НК РФ ч. 2, гл. 23, ст. 224
+            </a>
+          </p>
         </section>
 
         <section>
