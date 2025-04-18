@@ -3,9 +3,8 @@
 import Link from 'next/link';
 
 const modules = [
-  { name: 'Coming Soon...', path: '/', emoji: '💰' },
-  // { name: 'Налоги', path: '/finance-and-credit/interest', emoji: '💰' },
-  // { name: 'Кредитные расчёты', path: '/finance-and-credit/loans', emoji: '🏦' },
+  { name: 'Расчет налогов', path: '/finance-and-credit/taxes', emoji: '💰' },
+  { name: 'Баланс бюджета', path: '/finance-and-credit/budget', emoji: '🏦' },
 ];
 
 export default function Home() {

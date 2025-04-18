@@ -36,9 +36,8 @@ const categories = [
     color: 'from-yellow-100 to-yellow-50',
     text: 'text-yellow-800',
     modules: [
-      { name: 'Coming Soon...', path: '/', emoji: '💰' },
-      // { name: 'Проценты и аннуитеты', path: '/finance-and-credit/interest', emoji: '💰' },
-      // { name: 'Кредитные расчёты', path: '/finance-and-credit/loans', emoji: '🏦' },
+      { name: 'Расчет налогов', path: '/finance-and-credit/taxes', emoji: '💰' },
+      { name: 'Баланс бюджета', path: '/finance-and-credit/budget', emoji: '🏦' },
     ],
   },
 ];
