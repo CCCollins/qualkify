@@ -51,8 +51,10 @@ export default function BudgetQuickPage() {
 
       <div className="bg-blue-50 border-l-4 border-blue-400 p-4 text-sm rounded">
         <ul className="list-disc list-inside text-xs text-gray-700">
-          <li>Доходы: налоги, акцизы, прибыль госпредприятий, пошлины, соцвзносы и др.</li>
-          <li>Расходы: оборона, медицина, экология, образование, госдолг, трансферты, инвестиции и др.</li>
+          <li><b>Доходы = Регулирующие + Собственные:</b> налоги, сборы, акцизы, прибыль госпредприятий, пошлины, соцвзносы, ...</li>
+          <li><b>Расходы = Дефицит + Доходы:</b> госдолг, госзакупки, трансферты, инвестиции, ...</li>
+          <li><b>Гос. долг на конец года = Гос. долг на начало года + Дефицит</b></li>
+          <li><b>Бремя гос. долга = Сумма долга / ВНП</b></li>
         </ul>
       </div>
 
@@ -63,7 +65,7 @@ export default function BudgetQuickPage() {
             rows={3}
             value={incomeRaw}
             onChange={e => setIncomeRaw(e.target.value)}
-            placeholder="120 9 ..."
+            placeholder="840/120*100 9 ..."
             className="w-full mt-1 p-2 border rounded shadow-sm"
           />
         </label>
@@ -74,7 +76,7 @@ export default function BudgetQuickPage() {
             rows={3}
             value={expensesRaw}
             onChange={e => setExpensesRaw(e.target.value)}
-            placeholder="34 25 15 25 140*0,08 0.2 ..."
+            placeholder="34 25 15 25 + 140*0,08 - 0.2 ..."
             className="w-full mt-1 p-2 border rounded shadow-sm"
           />
         </label>

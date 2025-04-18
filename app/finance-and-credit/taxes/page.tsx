@@ -11,12 +11,16 @@ export default function TaxesPage() {
 
   // Universal tax state
   const [base, setBase] = useState('');
-  const [rate, setRate] = useState('');
+  const [rate, setRate] = useState('20');
   const [isPercent, setIsPercent] = useState(true);
   const [useDates, setUseDates] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [manualMonths, setManualMonths] = useState('12');
+  const [progressive, setProgressive] = useState(false);
+  const [limit, setLimit] = useState('2759000');
+  const [rateUnder, setRateUnder] = useState('30');
+  const [rateAbove, setRateAbove] = useState('15,1');
 
   // Profit tax state
   const [revenue, setRevenue] = useState('');
@@ -53,8 +57,21 @@ export default function TaxesPage() {
 
   const calcUniversal = () => {
     const b = parse(base);
+    const m = months / 12;
+  
+    if (progressive) {
+      const lim = parse(limit);
+      const r1 = parse(rateUnder);
+      const r2 = parse(rateAbove);
+      const below = Math.min(b, lim);
+      const above = Math.max(b - lim, 0);
+      const tax = ((below * r1 + above * r2) / 100) * m;
+      const total = b + tax;
+      return { tax, total };
+    }
+  
     const r = parse(rate);
-    const tax = isPercent ? (b * r / 100 * (months / 12)) : (b * r * (months / 12));
+    const tax = isPercent ? (b * r / 100 * m) : (b * r * m);
     const total = b + tax;
     return { tax, total };
   };
@@ -104,21 +121,39 @@ export default function TaxesPage() {
             {input({ value: base, onChange: (e: React.ChangeEvent<HTMLInputElement>) => setBase(e.target.value) })}
           </label>
 
-          <label>
-            <span>Ставка налога {isPercent ? '(%)' : '(₽ на единицу)'}</span>
-            {input({ value: rate, onChange: (e: React.ChangeEvent<HTMLInputElement>) => setRate(e.target.value) })}
-          </label>
+          {!progressive ? (
+            <label>
+              <span>Ставка налога {isPercent ? '(%)' : '(₽ на единицу)'}</span>
+              {input({ value: rate, onChange: (e) => setRate(e.target.value) })}
+            </label>
+          ) : (
+            <>
+              <label>
+                <span>Лимит (₽)</span>
+                {input({ value: limit, onChange: (e) => setLimit(e.target.value) })}
+              </label>
+              <label>
+                <span>Ставка до лимита (%)</span>
+                {input({ value: rateUnder, onChange: (e) => setRateUnder(e.target.value) })}
+              </label>
+              <label>
+                <span>Ставка сверх лимита (%)</span>
+                {input({ value: rateAbove, onChange: (e) => setRateAbove(e.target.value) })}
+              </label>
+            </>
+          )}
         </div>
 
-        <div className="flex items-center gap-4 mt-3 mb-1">
-          <label className="flex items-center gap-2">
+        <div className="flex text-xs md:text-sm items-center gap-2 mt-3 mb-1">
+          Ставка: 
+          <label className="flex items-center gap-1">
             <input type="checkbox" checked={isPercent} onChange={() => setIsPercent(!isPercent)} />
-            <span className="text-sm">Ставка в процентах</span>
+            <span>в процентах</span>
           </label>
 
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={useDates} onChange={() => setUseDates(!useDates)} />
-            <span className="text-sm">Указать даты</span>
+          <label className="flex items-center gap-1">
+            <input type="checkbox" checked={progressive} onChange={() => setProgressive(!progressive)} />
+            <span>прогрессивная</span>
           </label>
         </div>
 
@@ -141,6 +176,11 @@ export default function TaxesPage() {
             </label>
           </div>
         )}
+
+        <label className="flex items-center mt-2 gap-2">
+          <input type="checkbox" checked={useDates} onChange={() => setUseDates(!useDates)} />
+          <span className="text-sm">Указать даты</span>
+        </label>
 
         <div className="mt-4 bg-white p-3 rounded shadow text-sm space-y-1">
           <p><strong>Учтено месяцев:</strong> {months}</p>
@@ -264,22 +304,22 @@ export default function TaxesPage() {
         </h1>
       </div>
 
-      <div className="flex gap-3 flex-wrap justify-center">
+      <div className="flex text-sm sm:text-md font-bold gap-1 sm:gap-3 flex-wrap justify-center">
         <button
           onClick={() => setMode('universal')}
-          className={`px-4 py-2 rounded ${mode === 'universal' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-800'}`}
+          className={`px-2 sm:px-4 py-2 rounded ${mode === 'universal' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-800'}`}
         >
           Универсальный налог
         </button>
         <button
           onClick={() => setMode('profit')}
-          className={`px-4 py-2 rounded ${mode === 'profit' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-800'}`}
+          className={`px-2 sm:px-4 py-2 rounded ${mode === 'profit' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-800'}`}
         >
           Налог на прибыль
         </button>
         <button
           onClick={() => setMode('reference')}
-          className={`px-4 py-2 rounded ${mode === 'reference' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-800'}`}
+          className={`px-2 sm:px-4 py-2 rounded ${mode === 'reference' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-800'}`}
         >
           Справка
         </button>
