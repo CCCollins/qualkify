@@ -8,7 +8,7 @@ type Mode = 'universal' | 'reference';
 
 export default function TaxesPage() {
   const [mode, setMode] = useState<Mode>('universal');
-  const [precision, setPrecision] = useState(2);
+  const [precision, setPrecision] = useState(4);
 
   // Universal tax state
   const [base, setBase] = useState('');
@@ -244,7 +244,6 @@ export default function TaxesPage() {
         <section>
           <h3 className="font-semibold text-base">Основное</h3>
           <ul className="list-disc list-inside">
-            <li>Во всех полях этого модуля можно производить арифметические операции</li>
             <li>Налоги округляются вверх до целого (а другие отчисления - нет)</li>
             <li>Из-за такого округления, если мы расчитываем налоги поквартально (по 3 месяца), то последний квартал вычисляется как сумма налогов за весь период - сумма налогов в предыдущих кварталах</li>
           </ul>
@@ -338,6 +337,19 @@ export default function TaxesPage() {
               НК РФ ч. 2, гл. 23, ст. 224
             </a>
           </p>
+        </section>
+
+        <section className="mt-6">
+          <h3 className="font-semibold text-base">Налоговые вычеты</h3>
+          <ul className="list-disc list-inside">
+            <li>На 1 ребенка — 1 400 ₽</li>
+            <li>На 2 ребенка — 2 800 ₽</li>
+            <li>На 3 и последующих — 6 000 ₽</li>
+            <li>На ребенка-инвалида — 12 000 ₽</li>
+            <li>Предоставляется до месяца, в котором доход превысил 450 000 ₽</li>
+            <li>Так же для опекунов, попечителей и приемных родителей</li>
+          </ul>
+          <p className="text-xs text-gray-500">Источник: <a className="text-blue-600 underline" href="https://www.consultant.ru/document/cons_doc_LAW_28165/c100f38376d82fcc23ff72192989c382d6e3a646/" target="_blank" rel="noopener noreferrer">НК РФ ч. 2, гл. 23, ст. 218</a></p>
         </section>
 
         <section>

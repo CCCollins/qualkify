@@ -3,7 +3,7 @@ import { TbTrash } from 'react-icons/tb';
 import { input, parse, safe } from './utils';
 
 export default function ProfitComponent() {
-    const [precision, setPrecision] = useState(2);
+    const [precision, setPrecision] = useState(4);
 
     // Profit tax state
     const [revenue, setRevenue] = useState('');
@@ -19,10 +19,7 @@ export default function ProfitComponent() {
     const [useDetailedCost, setUseDetailedCost] = useState(false);
 
     // Расширенные поля
-    const [buildingCost, setBuildingCost] = useState('');
-    const [buildingYears, setBuildingYears] = useState('1');
-    const [equipmentCost, setEquipmentCost] = useState('');
-    const [equipmentYears, setEquipmentYears] = useState('1');
+    const [initAO, setAO] = useState('');
     const [materialCost, setMaterialCost] = useState('');
     const [waste, setWaste] = useState('');
     const [salaryFund, setSalaryFund] = useState('');
@@ -33,7 +30,7 @@ export default function ProfitComponent() {
     
     const p = parse;
   
-    const AO = (p(buildingCost) / p(buildingYears)) + (p(equipmentCost) / p(equipmentYears));
+    const AO = p(initAO);
     const MZ = p(materialCost) - p(waste);
     const FOT = p(salaryFund);
     const OSN = FOT * p(socialRate) / 100;
@@ -77,7 +74,6 @@ export default function ProfitComponent() {
     };
     
     const formulasCost = {
-      AO: `АО = БС / п = ${safe(p(buildingCost), precision)} / ${safe(p(buildingYears), precision)} + ${safe(p(equipmentCost), precision)} / ${safe(p(equipmentYears), precision)} = ${safe(AO, precision)}`,
       MZ: `МЗ = Р×Q − Pотх×Qотх = ${safe(p(materialCost), precision)} - ${safe(p(waste), precision)} = ${safe(MZ, precision)}`,
       OSN: `ОСН = ФОТ × Ст = ${safe(FOT, precision)} × ${safe(p(socialRate), precision)}% = ${safe(OSN, precision)}`,
       PR: `ПЛ = ${safe(p(creditAmount), precision)} × (${safe(p(creditRate), precision)}% × ${safe(p(creditMonths), precision)} / 12) = ${safe(PR, precision)}`,
@@ -96,10 +92,6 @@ export default function ProfitComponent() {
       setFunds('');
     
       // Детализированные:
-      setBuildingCost('');
-      setBuildingYears('1');
-      setEquipmentCost('');
-      setEquipmentYears('1');
       setMaterialCost('');
       setWaste('');
       setSalaryFund('');
@@ -137,14 +129,11 @@ export default function ProfitComponent() {
           <>
             <h3 className="font-semibold text-base mt-6 mb-1">Расширенный расчет себестоимости</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <label>Стоимость здания (БС){input({ value: buildingCost, onChange: e => setBuildingCost(e.target.value) })}</label>
-              <label>Срок службы здания (период, лет){input({ value: buildingYears, onChange: e => setBuildingYears(e.target.value) })}</label>
-              <label>Стоимость оборудования (БС){input({ value: equipmentCost, onChange: e => setEquipmentCost(e.target.value) })}</label>
-              <label>Срок службы оборудования (период, лет){input({ value: equipmentYears, onChange: e => setEquipmentYears(e.target.value) })}</label>
               <label>Закупка сырья (Р×Q){input({ value: materialCost, onChange: e => setMaterialCost(e.target.value) })}</label>
               <label>Возвратные отходы (Pотх×Qотх){input({ value: waste, onChange: e => setWaste(e.target.value) })}</label>
               <label>Фонд оплаты труда (ФОТ){input({ value: salaryFund, onChange: e => setSalaryFund(e.target.value) })}</label>
               <label>Социальные отчисления (Ст, %) {input({ value: socialRate, onChange: e => setSocialRate(e.target.value) })}</label>
+              <label>Амортизация (AO){input({ value: initAO, onChange: e => setAO(e.target.value) })}</label>
               <label>Кредит (К) {input({ value: creditAmount, onChange: e => setCreditAmount(e.target.value) })}</label>
               <label>Ставка (d, %) {input({ value: creditRate, onChange: e => setCreditRate(e.target.value) })}</label>
               <label>Срок (t, мес) {input({ value: creditMonths, onChange: e => setCreditMonths(e.target.value) })}</label>
@@ -167,10 +156,6 @@ export default function ProfitComponent() {
             <h4 className="font-semibold text-base">🧾 Расчет себестоимости</h4>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
-              <div>
-                <strong>Амортизация (линейная):</strong> {safe(AO)}
-                <div className="text-xs text-gray-500">{formulasCost.AO}</div>
-              </div>
               <div>
                 <strong>Материальные затраты:</strong> {safe(MZ)}
                 <div className="text-xs text-gray-500">{formulasCost.MZ}</div>

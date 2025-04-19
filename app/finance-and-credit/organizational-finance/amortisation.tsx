@@ -18,19 +18,22 @@ const AMORTIZATION_RATES = [
 ];
 
 export default function AmortisationComponent() {
-  const [method, setMethod] = useState<'linear' | 'nonlinear' | 'years-sum'>('linear');
+  const [method, setMethod] = useState<'linear' | 'nonlinear' | 'years-sum' | 'by-output'>('linear');
   const [cost, setCost] = useState('');
-  const [years, setYears] = useState('');
+  const [years, setYears] = useState('1');
   const [precision, setPrecision] = useState(2);
   const [monthlyView, setMonthlyView] = useState(false);
   const [customRate, setCustomRate] = useState('');
+
+  const [totalOutput, setTotalOutput] = useState('');
+  const [yearlyOutputs, setYearlyOutputs] = useState('');
 
   const base = parse(cost);
   const n = parse(years);
 
   const resetFields = () => {
     setCost('');
-    setYears('');
+    setYears('1');
     setPrecision(2);
     setMonthlyView(false);
     setCustomRate('');
@@ -86,6 +89,19 @@ export default function AmortisationComponent() {
       return monthlyValues;
     }
 
+    if (method === 'by-output') {
+      const total = parse(totalOutput);
+      if (base <= 0 || total <= 0) return [];
+    
+      const outputs = yearlyOutputs
+        .split(',')
+        .map((v) => parse(v.trim()))
+        .filter((v) => !isNaN(v) && v >= 0);
+    
+      const rate = base / total;
+      return outputs.map((output) => output * rate);
+    }
+
     return [];
   };
 
@@ -95,6 +111,7 @@ export default function AmortisationComponent() {
     if (method === 'linear') return 'АО = ПС × Tост / СЧСЛПИ';
     if (method === 'years-sum') return 'АО = СБ × Н';
     if (method === 'nonlinear') return 'АО = Остаток × Н';
+    if (method === 'by-output') return 'АО = Годовой объем × (ПС / Общий объем)';
   })();
 
   return (
@@ -128,8 +145,6 @@ export default function AmortisationComponent() {
 
       {/* Ввод */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-        <label>Первоначальная стоимость (ПС) {input({ value: cost, onChange: e => setCost(e.target.value) })}</label>
-        <label>Срок полезного использования (СПИ, лет) {input({ value: years, onChange: e => setYears(e.target.value) })}</label>
         <label>
           Метод: <span className="text-xs text-gray-600">{formula}</span>
           <select
@@ -140,14 +155,33 @@ export default function AmortisationComponent() {
             <option value="linear">Линейный</option>
             <option value="years-sum">Сумма чисел лет СПИ</option>
             <option value="nonlinear">Нелинейный (ускоренный)</option>
+            <option value="by-output">Пропорционально объему продукции</option>
           </select>
         </label>
+
+        <label>Первоначальная стоимость (ПС) {input({ value: cost, onChange: e => setCost(e.target.value) })}</label>
+        {method !== 'by-output' && (
+          <label>Срок полезного использования (СПИ, лет)
+            {input({ value: years, onChange: e => setYears(e.target.value) })}
+          </label>
+        )}
 
         {method === 'nonlinear' && (
           <label>
             Годовая норма (Н, %)
             {input({ value: customRate, onChange: e => setCustomRate(e.target.value) })}
           </label>
+        )}
+
+        {method === 'by-output' && (
+          <>
+            <label>Общий объем продукции (на все годы)
+              {input({ value: totalOutput, onChange: e => setTotalOutput(e.target.value) })}
+            </label>
+            <label>Объем по годам (через запятую)
+              {input({ value: yearlyOutputs, onChange: e => setYearlyOutputs(e.target.value) })}
+            </label>
+          </>
         )}
       </div>
 
