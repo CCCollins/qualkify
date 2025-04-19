@@ -375,7 +375,7 @@ export default function TaxesPage() {
           <label>Коммерческие расходы (КР){input({ value: comm, onChange: e => setComm(e.target.value) })}</label>
           <label>Внереализационные доходы (ДВО){input({ value: nonOpInc, onChange: e => setNonOpInc(e.target.value) })}</label>
           <label>Внереализационные расходы (РВО){input({ value: nonOpExp, onChange: e => setNonOpExp(e.target.value) })}</label>
-          <label>Налоги (∑Н в т.ч. НДС){input({ value: taxes, onChange: e => setTaxes(e.target.value) })}</label>
+          <label>Налоги (∑Н в т.ч. НДС){input({ value: taxes, placeholder: "НДС = П до н/о * 0,2", onChange: e => setTaxes(e.target.value) })}</label>
           <label>Отчисления в фонды{input({ value: funds, onChange: e => setFunds(e.target.value) })}</label>
         </div>
   
