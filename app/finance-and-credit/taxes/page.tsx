@@ -194,7 +194,7 @@ export default function TaxesPage() {
         {/* 📊 Результаты */}
         <div className="mt-6 p-4 bg-white rounded shadow text-sm space-y-3 relative">
           <h4 className="font-semibold text-base mb-1 pr-8">📊 Результаты</h4>
-  
+
           <button
             onClick={resetUniversalFields}
             className="absolute top-4 right-4 text-gray-600 hover:text-black"
@@ -202,7 +202,7 @@ export default function TaxesPage() {
           >
             <TbTrash className="text-xl" />
           </button>
-  
+
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-6">
             <div>
               <strong>Сумма налога:</strong> {safe(res.tax)} ₽
@@ -214,7 +214,37 @@ export default function TaxesPage() {
               <strong>Учтено месяцев:</strong> {months}
             </div>
           </div>
-  
+
+          {/* Шкала распределения итоговой суммы */}
+          <div className="mt-4 space-y-2">
+            <div className="text-xs font-medium text-gray-700">Состав итоговой суммы</div>
+
+            <div className="relative h-5 rounded bg-gray-100 overflow-hidden flex">
+              {/* База */}
+              <div
+                className="h-full bg-blue-500"
+                style={{
+                  width: `${(parseFloat(base) / res.total) * 100}%`,
+                }}
+                title="Налоговая база"
+              />
+
+              {/* Налог */}
+              <div
+                className="h-full bg-red-500"
+                style={{
+                  width: `${(res.tax / res.total) * 100}%`,
+                }}
+                title="Налог"
+              />
+            </div>
+
+            <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <span>0%</span>
+              <span>100% ({safe(res.total)})</span>
+            </div>
+          </div>
+
           <div className="text-xs text-gray-500">
             Налог = НБ × СН × (месяцы / 12)
           </div>

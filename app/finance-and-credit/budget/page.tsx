@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { TbSmartHome } from 'react-icons/tb';
+import { TbSmartHome, TbTrash } from 'react-icons/tb';
 
 export default function BudgetQuickPage() {
   const [incomeRaw, setIncomeRaw] = useState('');
@@ -14,9 +14,7 @@ export default function BudgetQuickPage() {
       .split(/\s+/)
       .map(expr => {
         try {
-          // Разрешаем простые арифметические выражения
           const normalized = expr.replace(',', '.');
-          // Безопасный eval для 0-9 и операторов
           if (/^[\d.+\-*/\s()]+$/.test(normalized)) {
             return Function(`"use strict"; return (${normalized})`)();
           }
@@ -38,8 +36,19 @@ export default function BudgetQuickPage() {
   const status =
     balance > 0 ? 'Профицитный' : balance < 0 ? 'Дефицитный' : 'Сбалансированный';
 
+  const percent = (val: number) =>
+    incomeSum > 0 ? Math.min(Math.abs(val / incomeSum) * 100, 100) : 0;
+
+  const safe = (n: number) =>
+    isNaN(n) || !isFinite(n) ? '0,00' : n.toFixed(2).replace('.', ',');
+
+  const resetFields = () => {
+    setIncomeRaw('');
+    setExpensesRaw('');
+  };
+
   return (
-    <main className="max-w-4xl mx-auto px-4 space-y-6">
+    <main className="max-w-4xl mx-auto px-4 space-y-6 pb-10">
       <div className="flex justify-center items-center mb-6">
         <Link href="/" className="text-blue-600 hover:text-blue-800 transition" title="Домашняя страница">
           <TbSmartHome className="text-3xl mr-2" />
@@ -66,7 +75,7 @@ export default function BudgetQuickPage() {
             value={incomeRaw}
             onChange={e => setIncomeRaw(e.target.value)}
             placeholder="840/120*100 9 ..."
-            className="w-full mt-1 p-2 border rounded shadow-sm"
+            className="w-full mt-1 p-2 border rounded shadow-sm focus:ring focus:ring-blue-200 transition"
           />
         </label>
 
@@ -76,19 +85,68 @@ export default function BudgetQuickPage() {
             rows={3}
             value={expensesRaw}
             onChange={e => setExpensesRaw(e.target.value)}
-            placeholder="34 25 15 25 + 140*0,08 - 0.2 ..."
-            className="w-full mt-1 p-2 border rounded shadow-sm"
+            placeholder="34 25 15 + 140*0.08 ..."
+            className="w-full mt-1 p-2 border rounded shadow-sm focus:ring focus:ring-blue-200 transition"
           />
         </label>
       </div>
 
-      <div className="bg-white p-4 rounded shadow text-sm space-y-1">
-        <p><strong>Сумма доходов:</strong> {incomeSum.toFixed(2).replace('.', ',')}</p>
-        <p><strong>Сумма расходов:</strong> {expenseSum.toFixed(2).replace('.', ',')}</p>
-        <p><strong>Сальдо:</strong> {balance.toFixed(2).replace('.', ',')}</p>
-        <p className={`mt-1 font-semibold ${balance > 0 ? 'text-green-600' : balance < 0 ? 'text-red-600' : 'text-yellow-600'}`}>
-          Бюджет: {status}
-        </p>
+      <div className="relative bg-white p-4 rounded shadow text-sm space-y-3 mt-4">
+        <h4 className="font-semibold text-base mb-1 pr-8">📊 Результаты бюджета</h4>
+
+        <button
+          onClick={resetFields}
+          className="absolute top-4 right-4 text-gray-600 hover:text-black"
+          title="Очистить все поля"
+        >
+          <TbTrash className="text-xl" />
+        </button>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
+          <div><strong>Сумма доходов:</strong> {safe(incomeSum)}</div>
+          <div><strong>Сумма расходов:</strong> {safe(expenseSum)}</div>
+          <div><strong>Сальдо:</strong> {safe(balance)}</div>
+          <div>
+            <strong>Бюджет:</strong>{' '}
+            <span className={`font-semibold ${balance > 0 ? 'text-green-600' : balance < 0 ? 'text-red-600' : 'text-yellow-600'}`}>
+              {status}
+            </span>
+          </div>
+        </div>
+
+        <div className="space-y-2 mt-4">
+          {/* Доходы */}
+          <div className="text-xs font-medium text-gray-700">Расходы</div>
+          <div className="relative h-5 rounded bg-gradient-to-r from-rose-100 to-red-200 overflow-hidden">
+            <div
+              className="absolute top-0 bottom-0 left-0 bg-red-500 transition-all duration-300"
+              style={{ width: `${percent(expenseSum)}%` }}
+              title="Доля расходов"
+            />
+            <div className="absolute inset-0 flex items-center justify-end px-2 text-xs text-white font-bold">
+              {safe(expenseSum)}
+            </div>
+          </div>
+
+          {/* Сальдо */}
+          <div className="text-xs font-medium text-gray-700">Сальдо</div>
+          <div className="relative h-5 rounded bg-gradient-to-r from-green-100 to-green-200 overflow-hidden">
+            <div
+              className={`absolute top-0 bottom-0 left-0 ${balance < 0 ? 'bg-orange-500' : 'bg-green-600'} transition-all duration-300`}
+              style={{ width: `${percent(balance)}%` }}
+              title="Сальдо"
+            />
+            <div className="absolute inset-0 flex items-center justify-end px-2 text-xs text-white font-bold">
+              {safe(balance)}
+            </div>
+          </div>
+
+          {/* Легенда */}
+          <div className="flex justify-between text-xs text-gray-500 mt-1">
+            <span>0%</span>
+            <span>100% от доходов ({safe(incomeSum)})</span>
+          </div>
+        </div>
       </div>
     </main>
   );
