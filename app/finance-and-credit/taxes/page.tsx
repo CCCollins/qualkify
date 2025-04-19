@@ -8,6 +8,7 @@ type Mode = 'universal' | 'profit' | 'reference';
 
 export default function TaxesPage() {
   const [mode, setMode] = useState<Mode>('universal');
+  const [precision, setPrecision] = useState(2);
 
   // Universal tax state
   const [base, setBase] = useState('');
@@ -37,9 +38,9 @@ export default function TaxesPage() {
   
   // Расширенные поля
   const [buildingCost, setBuildingCost] = useState('');
-  const [buildingYears, setBuildingYears] = useState('');
+  const [buildingYears, setBuildingYears] = useState('1');
   const [equipmentCost, setEquipmentCost] = useState('');
-  const [equipmentYears, setEquipmentYears] = useState('');
+  const [equipmentYears, setEquipmentYears] = useState('1');
   const [materialCost, setMaterialCost] = useState('');
   const [waste, setWaste] = useState('');
   const [salaryFund, setSalaryFund] = useState('');
@@ -48,6 +49,16 @@ export default function TaxesPage() {
   const [creditRate, setCreditRate] = useState('');
   const [creditMonths, setCreditMonths] = useState('');
 
+  const round = (value: number, digits: number) => {
+    const factor = Math.pow(10, digits);
+    return Math.round((value + Number.EPSILON) * factor) / factor;
+  };
+  
+  const safe = (n: number, digits = 2) => {
+    if (isNaN(n) || !isFinite(n)) return '0,00';
+    return round(n, digits).toFixed(digits).replace('.', ',');
+  };
+  
   const parse = (val: string): number => {
     try {
       const sanitized = val
@@ -105,8 +116,7 @@ export default function TaxesPage() {
 
   const renderUniversal = () => {
     const res = calcUniversal();
-    const safe = (n: number) => isNaN(n) ? '0,00' : n.toFixed(2).replace('.', ',');
-
+  
     const resetUniversalFields = () => {
       setBase('');
       setRate('20');
@@ -120,7 +130,7 @@ export default function TaxesPage() {
       setRateUnder('30');
       setRateAbove('15,1');
     };
-
+  
     return (
       <>
         <h2 className="text-xl font-bold mb-3">Универсальный налог</h2>
@@ -193,8 +203,20 @@ export default function TaxesPage() {
   
         {/* 📊 Результаты */}
         <div className="mt-6 p-4 bg-white rounded shadow text-sm space-y-3 relative">
-          <h4 className="font-semibold text-base mb-1 pr-8">📊 Результаты</h4>
-
+          <h4 className="font-semibold text-base mb-1 pr-8">
+            📊 Результаты (
+            <input
+              id="precision"
+              type="number"
+              min={0}
+              max={10}
+              value={precision}
+              onChange={(e) => setPrecision(Number(e.target.value))}
+              className="w-8"
+            />
+            знаков)
+          </h4>
+  
           <button
             onClick={resetUniversalFields}
             className="absolute top-4 right-4 text-gray-600 hover:text-black"
@@ -202,49 +224,36 @@ export default function TaxesPage() {
           >
             <TbTrash className="text-xl" />
           </button>
-
+  
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-6">
-            <div>
-              <strong>Сумма налога:</strong> {safe(res.tax)} ₽
-            </div>
-            <div>
-              <strong>Итого с налогом:</strong> {safe(res.total)} ₽
-            </div>
-            <div>
-              <strong>Учтено месяцев:</strong> {months}
-            </div>
+            <div><strong>Сумма налога:</strong> {safe(res.tax, precision)} ₽</div>
+            <div><strong>Итого с налогом:</strong> {safe(res.total, precision)} ₽</div>
+            <div><strong>Учтено месяцев:</strong> {months}</div>
           </div>
-
+  
           {/* Шкала распределения итоговой суммы */}
           <div className="mt-4 space-y-2">
             <div className="text-xs font-medium text-gray-700">Состав итоговой суммы</div>
-
+  
             <div className="relative h-5 rounded bg-gray-100 overflow-hidden flex">
-              {/* База */}
               <div
                 className="h-full bg-blue-500"
-                style={{
-                  width: `${(parseFloat(base) / res.total) * 100}%`,
-                }}
+                style={{ width: `${(parse(base) / res.total) * 100}%` }}
                 title="Налоговая база"
               />
-
-              {/* Налог */}
               <div
                 className="h-full bg-red-500"
-                style={{
-                  width: `${(res.tax / res.total) * 100}%`,
-                }}
+                style={{ width: `${(res.tax / res.total) * 100}%` }}
                 title="Налог"
               />
             </div>
-
+  
             <div className="flex justify-between text-xs text-gray-500 mt-1">
               <span>0%</span>
-              <span>100% ({safe(res.total)})</span>
+              <span>100% ({safe(res.total, precision)})</span>
             </div>
           </div>
-
+  
           <div className="text-xs text-gray-500">
             Налог = НБ × СН × (месяцы / 12)
           </div>
@@ -289,16 +298,22 @@ export default function TaxesPage() {
     const npWidth = np * scale;
     const wholesaleWidth = wholesalePrice * scale;
   
-    const safe = (n: number) => isNaN(n) ? '0.00' : n.toFixed(2);
-  
     const formulas = {
-      vp: `ВП = ВР - КН - СС = ${vr} - ${kn} - ${effectiveCost} = ${vp}`,
-      pp: `ПП = ВП - УР - КР = ${vp} - ${ur} - ${kr} = ${pp}`,
-      deltaVO: `ΔВО = ДВО - РВО = ${dvo} - ${rvo} = ${deltaVO}`,
-      preTax: `П до н/о = ПП ± ΔВО = ${pp} + ${deltaVO} = ${preTax}`,
-      np: `ЧП = П до н/о - ∑Н = ${preTax} - ${taxSum} = ${np}`,
-      unrealized: `НерП = ЧП - фонды = ${np} - ${deductions} = ${unrealized}`,
-      wholesale: `ОпЦ = СС + ПП + НДС = ${effectiveCost} + ${pp} + ${vat} = ${wholesalePrice}`
+      vp: `ВП = ВР - КН - СС = ${safe(vr, precision)} - ${safe(kn, precision)} - ${safe(effectiveCost, precision)} = ${safe(vp, precision)}`,
+      pp: `ПП = ВП - УР - КР = ${safe(vp, precision)} - ${safe(ur, precision)} - ${safe(kr, precision)} = ${safe(pp, precision)}`,
+      deltaVO: `ΔВО = ДВО - РВО = ${safe(dvo, precision)} - ${safe(rvo, precision)} = ${safe(deltaVO, precision)}`,
+      preTax: `П до н/о = ПП ± ΔВО = ${safe(pp, precision)} + ${safe(deltaVO, precision)} = ${safe(preTax, precision)}`,
+      np: `ЧП = П до н/о - ∑Н = ${safe(preTax, precision)} - ${safe(taxSum, precision)} = ${safe(np, precision)}`,
+      unrealized: `НерП = ЧП - Ф = ${safe(np, precision)} - ${safe(deductions, precision)} = ${safe(unrealized, precision)}`,
+      wholesale: `ОпЦ = СС + ПП + НДС = ${safe(effectiveCost, precision)} + ${safe(pp, precision)} + ${safe(vat, precision)} = ${safe(wholesalePrice, precision)}`
+    };
+    
+    const formulasCost = {
+      AO: `АО = БС / п = ${safe(p(buildingCost), precision)} / ${safe(p(buildingYears), precision)} + ${safe(p(equipmentCost), precision)} / ${safe(p(equipmentYears), precision)} = ${safe(AO, precision)}`,
+      MZ: `МЗ = Р×Q − Pотх×Qотх = ${safe(p(materialCost), precision)} - ${safe(p(waste), precision)} = ${safe(MZ, precision)}`,
+      OSN: `ОСН = ФОТ × Ст = ${safe(FOT, precision)} × ${safe(p(socialRate), precision)}% = ${safe(OSN, precision)}`,
+      PR: `ПЛ = ${safe(p(creditAmount), precision)} × (${safe(p(creditRate), precision)}% × ${safe(p(creditMonths), precision)} / 12) = ${safe(PR, precision)}`,
+      cost: `СС = АО + МЗ + ФОТ + ОСН + ПЛ = ${safe(AO, precision)} + ${safe(MZ, precision)} + ${safe(FOT, precision)} + ${safe(OSN, precision)} + ${safe(PR, precision)} = ${safe(detailedCost, precision)}`
     };
 
     const resetFields = () => {
@@ -314,13 +329,13 @@ export default function TaxesPage() {
     
       // Детализированные:
       setBuildingCost('');
-      setBuildingYears('');
+      setBuildingYears('1');
       setEquipmentCost('');
-      setEquipmentYears('');
+      setEquipmentYears('1');
       setMaterialCost('');
       setWaste('');
       setSalaryFund('');
-      setSocialRate('');
+      setSocialRate('30');
       setCreditAmount('');
       setCreditRate('');
       setCreditMonths('');
@@ -337,12 +352,12 @@ export default function TaxesPage() {
             onChange={() => setUseDetailedCost(!useDetailedCost)}
             id="useDetailedCost"
           />
-          <label htmlFor="useDetailedCost">Использовать расширенный расчет себестоимости</label>
+          <label htmlFor="useDetailedCost">Расширенный расчет себестоимости</label>
         </div>
   
         <h3 className="font-semibold text-base mb-1">Основные параметры</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <label>Выручка от реализации (ВР){input({ value: revenue, placeholder: "Нетто-выручка = ВР/1,2", onChange: e => setRevenue(e.target.value) })}</label>
+          <label>Выручка от реализации (ВР){input({ value: revenue, placeholder: "Нетто-выручка (без НДС) = ВР/1,2", onChange: e => setRevenue(e.target.value) })}</label>
           <label>Косвенные налоги (КН){input({ value: indirect, onChange: e => setIndirect(e.target.value) })}</label>
   
           {!useDetailedCost && (
@@ -354,17 +369,17 @@ export default function TaxesPage() {
           <>
             <h3 className="font-semibold text-base mt-6 mb-1">Расширенный расчет себестоимости</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <label>Стоимость здания{input({ value: buildingCost, onChange: e => setBuildingCost(e.target.value) })}</label>
-              <label>Срок службы здания (лет){input({ value: buildingYears, onChange: e => setBuildingYears(e.target.value) })}</label>
-              <label>Стоимость оборудования{input({ value: equipmentCost, onChange: e => setEquipmentCost(e.target.value) })}</label>
-              <label>Срок службы оборудования (лет){input({ value: equipmentYears, onChange: e => setEquipmentYears(e.target.value) })}</label>
-              <label>Закупка сырья{input({ value: materialCost, onChange: e => setMaterialCost(e.target.value) })}</label>
-              <label>Возвратные отходы{input({ value: waste, onChange: e => setWaste(e.target.value) })}</label>
-              <label>ФОТ{input({ value: salaryFund, onChange: e => setSalaryFund(e.target.value) })}</label>
-              <label>Социальные отчисления (%) {input({ value: socialRate, onChange: e => setSocialRate(e.target.value) })}</label>
-              <label>Кредит {input({ value: creditAmount, onChange: e => setCreditAmount(e.target.value) })}</label>
-              <label>Ставка (%) {input({ value: creditRate, onChange: e => setCreditRate(e.target.value) })}</label>
-              <label>Срок (мес) {input({ value: creditMonths, onChange: e => setCreditMonths(e.target.value) })}</label>
+              <label>Стоимость здания (БС){input({ value: buildingCost, onChange: e => setBuildingCost(e.target.value) })}</label>
+              <label>Срок службы здания (период, лет){input({ value: buildingYears, onChange: e => setBuildingYears(e.target.value) })}</label>
+              <label>Стоимость оборудования (БС){input({ value: equipmentCost, onChange: e => setEquipmentCost(e.target.value) })}</label>
+              <label>Срок службы оборудования (период, лет){input({ value: equipmentYears, onChange: e => setEquipmentYears(e.target.value) })}</label>
+              <label>Закупка сырья (Р×Q){input({ value: materialCost, onChange: e => setMaterialCost(e.target.value) })}</label>
+              <label>Возвратные отходы (Pотх×Qотх){input({ value: waste, onChange: e => setWaste(e.target.value) })}</label>
+              <label>Фонд оплаты труда (ФОТ){input({ value: salaryFund, onChange: e => setSalaryFund(e.target.value) })}</label>
+              <label>Социальные отчисления (Ст, %) {input({ value: socialRate, onChange: e => setSocialRate(e.target.value) })}</label>
+              <label>Кредит (К) {input({ value: creditAmount, onChange: e => setCreditAmount(e.target.value) })}</label>
+              <label>Ставка (d, %) {input({ value: creditRate, onChange: e => setCreditRate(e.target.value) })}</label>
+              <label>Срок (t, мес) {input({ value: creditMonths, onChange: e => setCreditMonths(e.target.value) })}</label>
             </div>
           </>
         )}
@@ -376,20 +391,51 @@ export default function TaxesPage() {
           <label>Внереализационные доходы (ДВО){input({ value: nonOpInc, onChange: e => setNonOpInc(e.target.value) })}</label>
           <label>Внереализационные расходы (РВО){input({ value: nonOpExp, onChange: e => setNonOpExp(e.target.value) })}</label>
           <label>Налоги (∑Н в т.ч. НДС){input({ value: taxes, placeholder: "НДС = П до н/о * 0,2", onChange: e => setTaxes(e.target.value) })}</label>
-          <label>Отчисления в фонды{input({ value: funds, onChange: e => setFunds(e.target.value) })}</label>
+          <label>Отчисления в фонды (Ф){input({ value: funds, onChange: e => setFunds(e.target.value) })}</label>
         </div>
   
         {useDetailedCost && (
-          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded text-sm space-y-1">
-            <h4 className="font-semibold">🧾 Расчёт себестоимости:</h4>
-            <p>АО: {safe(AO)} млн • МЗ: {safe(MZ)} млн • ФОТ: {safe(FOT)} млн</p>
-            <p>ОСН: {safe(OSN)} млн • Прочее: {safe(PR)} млн</p>
-            <p className="font-semibold">СС: {safe(detailedCost)} млн</p>
+          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded text-sm space-y-3">
+            <h4 className="font-semibold text-base">🧾 Расчёт себестоимости</h4>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
+              <div>
+                <strong>Амортизация (линейная):</strong> {safe(AO)}
+                <div className="text-xs text-gray-500">{formulasCost.AO}</div>
+              </div>
+              <div>
+                <strong>Материальные затраты:</strong> {safe(MZ)}
+                <div className="text-xs text-gray-500">{formulasCost.MZ}</div>
+              </div>
+              <div>
+                <strong>Социальные отчисления:</strong> {safe(OSN)}
+                <div className="text-xs text-gray-500">{formulasCost.OSN}</div>
+              </div>
+              <div>
+                <strong>Плата за кредит:</strong> {safe(PR)}
+                <div className="text-xs text-gray-500">{formulasCost.PR}</div>
+              </div>
+              <div className="sm:col-span-2">
+                <strong className="text-blue-700">Себестоимость:</strong> {safe(detailedCost)}
+                <div className="text-xs text-gray-500">{formulasCost.cost}</div>
+              </div>
+            </div>
           </div>
         )}
   
         <div className="relative mt-6 p-4 bg-white rounded shadow text-sm space-y-3">
-          <h4 className="font-semibold text-base mb-1">📊 Финансовый результат</h4>
+          <h4 className="font-semibold text-base mb-1 pr-8">📊 Финансовый результат ( 
+            <input
+              id="precision"
+              type="number"
+              min={0}
+              max={10}
+              value={precision}
+              onChange={(e) => setPrecision(Number(e.target.value))}
+              className="w-8"
+            />
+          знаков)
+          </h4>
 
           <button
             onClick={resetFields}
