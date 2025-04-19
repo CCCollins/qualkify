@@ -295,8 +295,8 @@ export default function TaxesPage() {
       vp: `ВП = ВР - КН - СС = ${vr} - ${kn} - ${effectiveCost} = ${vp}`,
       pp: `ПП = ВП - УР - КР = ${vp} - ${ur} - ${kr} = ${pp}`,
       deltaVO: `ΔВО = ДВО - РВО = ${dvo} - ${rvo} = ${deltaVO}`,
-      preTax: `Пдо н/о = ПП ± ΔВО = ${pp} + ${deltaVO} = ${preTax}`,
-      np: `ЧП = Пдо н/о - ∑Н = ${preTax} - ${taxSum} = ${np}`,
+      preTax: `П до н/о = ПП ± ΔВО = ${pp} + ${deltaVO} = ${preTax}`,
+      np: `ЧП = П до н/о - ∑Н = ${preTax} - ${taxSum} = ${np}`,
       unrealized: `НерП = ЧП - фонды = ${np} - ${deductions} = ${unrealized}`,
       wholesale: `ОпЦ = СС + ПП + НДС = ${effectiveCost} + ${pp} + ${vat} = ${wholesalePrice}`
     };
@@ -342,7 +342,7 @@ export default function TaxesPage() {
   
         <h3 className="font-semibold text-base mb-1">Основные параметры</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <label>Выручка от реализации (ВР){input({ value: revenue, onChange: e => setRevenue(e.target.value) })}</label>
+          <label>Выручка от реализации (ВР){input({ value: revenue, placeholder: "Нетто-выручка = ВР/1,2", onChange: e => setRevenue(e.target.value) })}</label>
           <label>Косвенные налоги (КН){input({ value: indirect, onChange: e => setIndirect(e.target.value) })}</label>
   
           {!useDetailedCost && (
