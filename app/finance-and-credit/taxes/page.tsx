@@ -31,7 +31,6 @@ export default function TaxesPage() {
   const [nonOpInc, setNonOpInc] = useState('');
   const [nonOpExp, setNonOpExp] = useState('');
   const [taxes, setTaxes] = useState('');
-  const [rf, setRF] = useState('');
   const [funds, setFunds] = useState('');
 
   const [useDetailedCost, setUseDetailedCost] = useState(false);
@@ -49,7 +48,18 @@ export default function TaxesPage() {
   const [creditRate, setCreditRate] = useState('');
   const [creditMonths, setCreditMonths] = useState('');
 
-  const parse = (val: string) => parseFloat(val.replace(',', '.')) || 0;
+  const parse = (val: string): number => {
+    try {
+      const sanitized = val
+        .replace(/,/g, '.')         // заменяем все запятые на точки
+        .replace(/[^-()\d/*+.]/g, ''); // удаляем всё, кроме допустимых символов
+  
+      const result = Function('"use strict"; return (' + sanitized + ')')();
+      return typeof result === 'number' && !isNaN(result) ? result : 0;
+    } catch {
+      return 0;
+    }
+  };
 
   const input = (props: React.InputHTMLAttributes<HTMLInputElement>) =>
     <input {...props} className="w-full mt-1 px-3 py-1.5 border border-gray-300 rounded-md shadow-sm focus:ring focus:ring-blue-200 text-sm transition" />;
@@ -198,7 +208,7 @@ export default function TaxesPage() {
     const dvo = p(nonOpInc);
     const rvo = p(nonOpExp);
     const taxSum = p(taxes);
-    const deductions = p(rf) + p(funds);
+    const deductions = p(funds);
   
     const vp = vr - kn - effectiveCost;
     const pp = vp - ur - kr;
@@ -207,13 +217,24 @@ export default function TaxesPage() {
     const np = preTax - taxSum;
     const unrealized = np - deductions;
   
+    // Оптовая цена: себестоимость + чистая прибыль + НДС
+    const vat = taxSum;
+    const wholesalePrice = effectiveCost + pp + vat;
+
+    const scale = vr > 0 ? 100 / vr : 0;
+    const npWidth = np * scale;
+    const wholesaleWidth = wholesalePrice * scale;
+  
+    const safe = (n: number) => isNaN(n) ? '0.00' : n.toFixed(2);
+  
     const formulas = {
       vp: `ВП = ВР - КН - СС = ${vr} - ${kn} - ${effectiveCost} = ${vp}`,
       pp: `ПП = ВП - УР - КР = ${vp} - ${ur} - ${kr} = ${pp}`,
       deltaVO: `ΔВО = ДВО - РВО = ${dvo} - ${rvo} = ${deltaVO}`,
-      preTax: `П до н/о = ПП ± ΔВО = ${pp} + ${deltaVO} = ${preTax}`,
-      np: `ЧП = П до н/о - ∑Н = ${preTax} - ${taxSum} = ${np}`,
-      unrealized: `НерП = ЧП - РФ - Ф = ${np} - ${deductions} = ${unrealized}`
+      preTax: `Пдо н/о = ПП ± ΔВО = ${pp} + ${deltaVO} = ${preTax}`,
+      np: `ЧП = Пдо н/о - ∑Н = ${preTax} - ${taxSum} = ${np}`,
+      unrealized: `НерП = ЧП - фонды = ${np} - ${deductions} = ${unrealized}`,
+      wholesale: `ОпЦ = СС + ПП + НДС = ${effectiveCost} + ${pp} + ${vat} = ${wholesalePrice}`
     };
   
     return (
@@ -235,23 +256,23 @@ export default function TaxesPage() {
           <label>Выручка от реализации (ВР){input({ value: revenue, onChange: e => setRevenue(e.target.value) })}</label>
           <label>Косвенные налоги (КН){input({ value: indirect, onChange: e => setIndirect(e.target.value) })}</label>
   
-          {!useDetailedCost ? (
+          {!useDetailedCost && (
             <label>Себестоимость (СС){input({ value: cost, onChange: e => setCost(e.target.value) })}</label>
-          ) : null}
+          )}
         </div>
   
         {useDetailedCost && (
           <>
             <h3 className="font-semibold text-base mt-6 mb-1">Расширенный расчет себестоимости</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <label>Здание, стоимость{input({ value: buildingCost, onChange: e => setBuildingCost(e.target.value) })}</label>
+              <label>Стоимость здания{input({ value: buildingCost, onChange: e => setBuildingCost(e.target.value) })}</label>
               <label>Срок службы здания (лет){input({ value: buildingYears, onChange: e => setBuildingYears(e.target.value) })}</label>
-              <label>Оборудование, стоимость{input({ value: equipmentCost, onChange: e => setEquipmentCost(e.target.value) })}</label>
-              <label>Срок службы оборудования{input({ value: equipmentYears, onChange: e => setEquipmentYears(e.target.value) })}</label>
+              <label>Стоимость оборудования{input({ value: equipmentCost, onChange: e => setEquipmentCost(e.target.value) })}</label>
+              <label>Срок службы оборудования (лет){input({ value: equipmentYears, onChange: e => setEquipmentYears(e.target.value) })}</label>
               <label>Закупка сырья{input({ value: materialCost, onChange: e => setMaterialCost(e.target.value) })}</label>
               <label>Возвратные отходы{input({ value: waste, onChange: e => setWaste(e.target.value) })}</label>
               <label>ФОТ{input({ value: salaryFund, onChange: e => setSalaryFund(e.target.value) })}</label>
-              <label>Соц. отчисления (%) {input({ value: socialRate, onChange: e => setSocialRate(e.target.value) })}</label>
+              <label>Социальные отчисления (%) {input({ value: socialRate, onChange: e => setSocialRate(e.target.value) })}</label>
               <label>Кредит {input({ value: creditAmount, onChange: e => setCreditAmount(e.target.value) })}</label>
               <label>Ставка (%) {input({ value: creditRate, onChange: e => setCreditRate(e.target.value) })}</label>
               <label>Срок (мес) {input({ value: creditMonths, onChange: e => setCreditMonths(e.target.value) })}</label>
@@ -265,31 +286,96 @@ export default function TaxesPage() {
           <label>Коммерческие расходы (КР){input({ value: comm, onChange: e => setComm(e.target.value) })}</label>
           <label>Внереализационные доходы (ДВО){input({ value: nonOpInc, onChange: e => setNonOpInc(e.target.value) })}</label>
           <label>Внереализационные расходы (РВО){input({ value: nonOpExp, onChange: e => setNonOpExp(e.target.value) })}</label>
-          <label>Налоги (∑Н){input({ value: taxes, onChange: e => setTaxes(e.target.value) })}</label>
-          <label>РФ + Фонды{input({ value: (p(rf) + p(funds)).toString(), onChange: e => {
-            const [rfPart, fundPart] = e.target.value.split('+').map(v => v.trim());
-            setRF(rfPart || '0');
-            setFunds(fundPart || '0');
-          } })}</label>
+          <label>Налоги (∑Н в т.ч. НДС){input({ value: taxes, onChange: e => setTaxes(e.target.value) })}</label>
+          <label>Отчисления в фонды{input({ value: funds, onChange: e => setFunds(e.target.value) })}</label>
         </div>
   
         {useDetailedCost && (
           <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded text-sm space-y-1">
             <h4 className="font-semibold">🧾 Расчёт себестоимости:</h4>
-            <p>АО: {AO.toFixed(2)} млн • МЗ: {MZ.toFixed(2)} млн • ФОТ: {FOT.toFixed(2)} млн</p>
-            <p>ОСН: {OSN.toFixed(2)} млн • Прочее: {PR.toFixed(2)} млн</p>
-            <p className="font-semibold">СС: {detailedCost.toFixed(2)} млн</p>
+            <p>АО: {safe(AO)} млн • МЗ: {safe(MZ)} млн • ФОТ: {safe(FOT)} млн</p>
+            <p>ОСН: {safe(OSN)} млн • Прочее: {safe(PR)} млн</p>
+            <p className="font-semibold">СС: {safe(detailedCost)} млн</p>
           </div>
         )}
   
-        <div className="mt-6 p-4 bg-white rounded shadow text-sm space-y-1">
-          <h4 className="font-semibold">📊 Финансовый результат:</h4>
-          <p>Валовая прибыль: {vp.toFixed(2)} <br /><span className="text-gray-500 text-xs">{formulas.vp}</span></p>
-          <p>Прибыль от продаж: {pp.toFixed(2)} <br /><span className="text-gray-500 text-xs">{formulas.pp}</span></p>
-          <p>Процент от внереализационных операций: {deltaVO.toFixed(2)} <br /><span className="text-gray-500 text-xs">{formulas.deltaVO}</span></p>
-          <p>Прибыль до налогообложения: {preTax.toFixed(2)} <br /><span className="text-gray-500 text-xs">{formulas.preTax}</span></p>
-          <p>Чистая прибыль: {np.toFixed(2)} <br /><span className="text-gray-500 text-xs">{formulas.np}</span></p>
-          <p>Нереализованная прибыль: {unrealized.toFixed(2)} <br /><span className="text-gray-500 text-xs">{formulas.unrealized}</span></p>
+        <div className="mt-6 p-4 bg-white rounded shadow text-sm space-y-3">
+          <h4 className="font-semibold text-base mb-1">📊 Финансовый результат</h4>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+            <div>
+              <strong>Валовая прибыль:</strong> {safe(vp)}
+              <div className="text-xs text-gray-500">{formulas.vp}</div>
+            </div>
+            <div>
+              <strong>Прибыль от продаж:</strong> {safe(pp)}
+              <div className="text-xs text-gray-500">{formulas.pp}</div>
+            </div>
+            <div>
+              <strong>Δ Внереализационных операций:</strong> {safe(deltaVO)}
+              <div className="text-xs text-gray-500">{formulas.deltaVO}</div>
+            </div>
+            <div>
+              <strong>Прибыль до налогообложения:</strong> {safe(preTax)}
+              <div className="text-xs text-gray-500">{formulas.preTax}</div>
+            </div>
+            <div>
+              <strong>Чистая прибыль:</strong> {safe(np)}
+              <div className="text-xs text-gray-500">{formulas.np}</div>
+            </div>
+            <div>
+              <strong>Нереализованная прибыль:</strong> {safe(unrealized)}
+              <div className="text-xs text-gray-500">{formulas.unrealized}</div>
+            </div>
+            <div className="sm:col-span-2">
+              <strong className="text-green-700">📦 Оптовая цена предприятия:</strong> {safe(wholesalePrice)}
+              <div className="text-xs text-gray-500">{formulas.wholesale}</div>
+            </div>
+          </div>
+
+          <div className="space-y-2 mt-6">
+            {/* Оптовая цена */}
+            <div className="text-xs font-medium text-gray-700">Оптовая цена</div>
+            <div className="relative h-5 rounded bg-gradient-to-r from-blue-200 to-blue-400 overflow-hidden">
+              {/* 100% линия */}
+              <div className="absolute left-[100%] top-0 bottom-0 w-0.5 bg-gray-300 z-10" />
+
+              {/* Бар оптовой цены */}
+              <div
+                className={`h-full transition-all duration-300 z-0 ${wholesaleWidth > 100 ? 'bg-red-500' : 'bg-blue-600'}`}
+                style={{ width: `${Math.min(Math.abs(wholesaleWidth), 100)}%` }}
+              />
+
+              {/* Label */}
+              <div className="absolute inset-0 flex items-center justify-end px-2 text-white text-xs font-semibold">
+                {safe(wholesalePrice)}
+              </div>
+            </div>
+
+            {/* Чистая прибыль */}
+            <div className="text-xs font-medium text-gray-700">Чистая прибыль</div>
+            <div className="relative h-5 rounded bg-gradient-to-r from-emerald-200 to-emerald-400 overflow-hidden">
+              {/* 100% линия */}
+              <div className="absolute left-[100%] top-0 bottom-0 w-0.5 bg-gray-300 z-10" />
+
+              {/* Бар чистой прибыли */}
+              <div
+                className={`h-full transition-all duration-300 z-0 ${np < 0 ? 'bg-orange-500' : 'bg-emerald-600'}`}
+                style={{ width: `${Math.min(Math.abs(npWidth), 100)}%` }}
+              />
+
+              {/* Label */}
+              <div className="absolute inset-0 flex items-center justify-end px-2 text-white text-xs font-semibold">
+                {safe(np)}
+              </div>
+            </div>
+
+            {/* Легенда */}
+            <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <span>0%</span>
+              <span>100% от выручки ({safe(vr)})</span>
+            </div>
+          </div>
         </div>
       </>
     );
@@ -303,6 +389,7 @@ export default function TaxesPage() {
         <section>
           <h3 className="font-semibold text-base">Основное</h3>
           <ul className="list-disc list-inside">
+            <li>Во всех полях этого модуля можно производить арифметические операции</li>
             <li>Налоги округляются вверх до целого (а другие отчисления - нет)</li>
             <li>Из-за такого округления, если мы расчитываем налоги поквартально (по 4 месяца), то последний квартал вычисляется как сумма налогов за весь период - сумма налогов в предыдущих кварталах</li>
           </ul>
