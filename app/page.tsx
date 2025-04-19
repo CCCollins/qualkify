@@ -38,6 +38,7 @@ const categories = [
     modules: [
       { name: 'Расчет налогов', path: '/finance-and-credit/taxes', emoji: '💰' },
       { name: 'Баланс бюджета', path: '/finance-and-credit/budget', emoji: '🏦' },
+      { name: 'Финансы организаций', path: '/finance-and-credit/organizational-finance', emoji: '🏢' },
     ],
   },
 ];

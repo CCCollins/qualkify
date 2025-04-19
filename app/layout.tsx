@@ -16,7 +16,7 @@ const firaCode = Fira_Code({
 
 export const metadata: Metadata = {
   title: 'Qualkify | Модульный калькулятор',
-  description: 'Модульный калькулятор для студентов: дискретная математика, статистика, финансы и многое другое.',
+  description: 'Модульный калькулятор для студентов: дискретная математика, статистика, финансы и кредит.',
   metadataBase: new URL('https://qualkify.vercel.app'),
   keywords: [
     'калькулятор для студентов',
@@ -56,7 +56,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Qualkify | Модульный калькулятор',
-    description: 'Модульный калькулятор для студентов: дискретная математика, статистика, финансы.',
+    description: 'Модульный калькулятор для студентов: дискретная математика, статистика, финансы и кредит.',
     images: ['https://qualkify.vercel.app/favicon.ico'],
     creator: '@qualkify',
   },
