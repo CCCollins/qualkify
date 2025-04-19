@@ -265,13 +265,13 @@ export default function IntervalsPage() {
           <button
             title="Скопировать результат"
             onClick={handleCopy}
-            className="absolute top-2 right-2 text-gray-500 hover:text-gray-800"
+            className="absolute top-4 right-4 text-gray-500 hover:text-gray-800"
           >
             <TbCopy className="text-xl" />
           </button>
 
           <div className="overflow-x-auto">
-            <h2 className="font-semibold mb-1">📊 Дискретный ряд на основе {f.reduce((acc, val) => acc + val, 0)} значений</h2>
+            <h2 className="font-semibold text-base mb-1 pr-8">📊 Дискретный ряд на основе {f.reduce((acc, val) => acc + val, 0)} значений</h2>
             <table className="table-auto border border-collapse mb-4">
               <thead>
               <tr>

@@ -280,15 +280,16 @@ ${groupRows}
 
       {results && (
         <div className="relative bg-white rounded shadow p-4 space-y-4">
+          <h4 className="font-semibold text-base mb-1 pr-8">📈 Результаты расчета</h4>
+
           <button
             onClick={copyResults}
-            className="absolute top-2 right-2 text-gray-600 hover:text-black"
+            className="absolute top-4 right-4 text-gray-600 hover:text-black"
             title="Копировать в буфер обмена"
           >
             <TbCopy className="text-xl" />
           </button>
 
-          <h2 className="text-lg font-bold">📈 Результаты расчёта</h2>
           <ul className="list-disc list-inside text-sm space-y-1">
             <li>
               Общее среднее: <strong>{toFixed(results.overallMean)}</strong>
@@ -325,7 +326,7 @@ ${groupRows}
             </li>
           </ul>
 
-          <h3 className="font-medium mt-4">📊 Детализация по группам</h3>
+          <h4 className="font-medium mt-4">📊 Детализация по группам</h4>
           <div className="overflow-x-auto">
           <table className="min-w-full border text-sm">
             <thead className="bg-gray-100">

@@ -154,7 +154,7 @@ export default function TaxesPage() {
           )}
         </div>
   
-        <div className="flex text-xs md:text-sm items-center gap-4 mt-3 mb-1">
+        <div className="flex text-xs md:text-sm items-center gap-2 mt-3 mb-1">
           Ставка:
           <label className="flex items-center gap-1">
             <input type="checkbox" checked={isPercent} onChange={() => setIsPercent(!isPercent)} />
