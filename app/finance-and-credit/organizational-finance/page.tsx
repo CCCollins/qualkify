@@ -4,9 +4,10 @@ import { useState } from 'react';
 import { TbSmartHome } from 'react-icons/tb';
 import ProfitComponent from './profit';
 import AmortisationComponent from './amortisation';
+import EfficiencyAnalysis from './efficiency'; // ✅ Импортируем
 import Link from 'next/link';
 
-type Mode = 'profit' | 'amortisation';
+type Mode = 'profit' | 'amortisation' | 'efficiency'; // ✅ Расширяем Mode
 
 export default function OrgFinancePage() {
   const [mode, setMode] = useState<Mode>('profit');
@@ -22,13 +23,12 @@ export default function OrgFinancePage() {
         </h1>
       </div>
 
+      {/* Кнопки */}
       <div className="flex text-sm sm:text-md font-bold gap-1 sm:gap-3 flex-wrap justify-center">
         <button
           onClick={() => setMode('profit')}
           className={`px-2 sm:px-4 py-2 rounded ${
-            mode === 'profit'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-100 text-gray-800'
+            mode === 'profit' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-800'
           }`}
         >
           Прибыль и налоги
@@ -36,17 +36,26 @@ export default function OrgFinancePage() {
         <button
           onClick={() => setMode('amortisation')}
           className={`px-2 sm:px-4 py-2 rounded ${
-            mode === 'amortisation'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-100 text-gray-800'
+            mode === 'amortisation' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-800'
           }`}
         >
           Амортизация
         </button>
+        <button
+          onClick={() => setMode('efficiency')}
+          className={`px-2 sm:px-4 py-2 rounded ${
+            mode === 'efficiency' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-800'
+          }`}
+        >
+          Эффективность
+        </button>
       </div>
 
+      {/* Компоненты */}
       <section>
-        {mode === 'profit' ? <ProfitComponent /> : <AmortisationComponent />}
+        {mode === 'profit' && <ProfitComponent />}
+        {mode === 'amortisation' && <AmortisationComponent />}
+        {mode === 'efficiency' && <EfficiencyAnalysis />}
       </section>
     </main>
   );
