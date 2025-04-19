@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { TbSmartHome } from 'react-icons/tb';
+import { TbSmartHome, TbTrash } from 'react-icons/tb';
 
 type Mode = 'universal' | 'profit' | 'reference';
 
@@ -51,8 +51,8 @@ export default function TaxesPage() {
   const parse = (val: string): number => {
     try {
       const sanitized = val
-        .replace(/,/g, '.')         // заменяем все запятые на точки
-        .replace(/[^-()\d/*+.]/g, ''); // удаляем всё, кроме допустимых символов
+        .replace(/,/g, '.')
+        .replace(/[^-()\d/*+.]/g, '');
   
       const result = Function('"use strict"; return (' + sanitized + ')')();
       return typeof result === 'number' && !isNaN(result) ? result : 0;
@@ -105,17 +105,32 @@ export default function TaxesPage() {
 
   const renderUniversal = () => {
     const res = calcUniversal();
+    const safe = (n: number) => isNaN(n) ? '0,00' : n.toFixed(2).replace('.', ',');
+
+    const resetUniversalFields = () => {
+      setBase('');
+      setRate('20');
+      setIsPercent(true);
+      setUseDates(false);
+      setStartDate('');
+      setEndDate('');
+      setManualMonths('12');
+      setProgressive(false);
+      setLimit('2759000');
+      setRateUnder('30');
+      setRateAbove('15,1');
+    };
 
     return (
       <>
         <h2 className="text-xl font-bold mb-3">Универсальный налог</h2>
-
+  
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <label>
             <span>Налоговая база (в единицах / ₽)</span>
-            {input({ value: base, onChange: (e: React.ChangeEvent<HTMLInputElement>) => setBase(e.target.value) })}
+            {input({ value: base, onChange: (e) => setBase(e.target.value) })}
           </label>
-
+  
           {!progressive ? (
             <label>
               <span>Ставка налога {isPercent ? '(%)' : '(₽ на единицу)'}</span>
@@ -138,52 +153,71 @@ export default function TaxesPage() {
             </>
           )}
         </div>
-
-        <div className="flex text-xs md:text-sm items-center gap-2 mt-3 mb-1">
-          Ставка: 
+  
+        <div className="flex text-xs md:text-sm items-center gap-4 mt-3 mb-1">
+          Ставка:
           <label className="flex items-center gap-1">
             <input type="checkbox" checked={isPercent} onChange={() => setIsPercent(!isPercent)} />
             <span>в процентах</span>
           </label>
-
           <label className="flex items-center gap-1">
             <input type="checkbox" checked={progressive} onChange={() => setProgressive(!progressive)} />
             <span>прогрессивная</span>
           </label>
         </div>
-
+  
         {useDates ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
             <label>
               <span>Дата начала</span>
-              {input({ type: 'date', value: startDate, onChange: (e: React.ChangeEvent<HTMLInputElement>) => setStartDate(e.target.value) })}
+              {input({ type: 'date', value: startDate, onChange: (e) => setStartDate(e.target.value) })}
             </label>
             <label>
               <span>Дата окончания</span>
-              {input({ type: 'date', value: endDate, onChange: (e: React.ChangeEvent<HTMLInputElement>) => setEndDate(e.target.value) })}
+              {input({ type: 'date', value: endDate, onChange: (e) => setEndDate(e.target.value) })}
             </label>
           </div>
         ) : (
           <div className="mt-2">
             <label>
               <span>Количество месяцев</span>
-               {input({ type: 'number', min: 1, value: manualMonths, onChange: (e: React.ChangeEvent<HTMLInputElement>) => setManualMonths(e.target.value) })}
+              {input({ type: 'number', min: 1, value: manualMonths, onChange: (e) => setManualMonths(e.target.value) })}
             </label>
           </div>
         )}
-
+  
         <label className="flex items-center mt-2 gap-2">
           <input type="checkbox" checked={useDates} onChange={() => setUseDates(!useDates)} />
           <span className="text-sm">Указать даты</span>
         </label>
-
-        <div className="mt-4 bg-white p-3 rounded shadow text-sm space-y-1">
-          <p><strong>Учтено месяцев:</strong> {months}</p>
-          <p><strong>Сумма налога:</strong> {res.tax.toFixed(2).replace('.', ',')} ₽</p>
-          <p><strong>Итого с налогом:</strong> {res.total.toFixed(2).replace('.', ',')} ₽</p>
-          <p className="text-gray-500 text-xs">
-            Формула: налог = НБ × СН × (месяцы / 12)
-          </p>
+  
+        {/* 📊 Результаты */}
+        <div className="mt-6 p-4 bg-white rounded shadow text-sm space-y-3 relative">
+          <h4 className="font-semibold text-base mb-1 pr-8">📊 Результаты</h4>
+  
+          <button
+            onClick={resetUniversalFields}
+            className="absolute top-4 right-4 text-gray-600 hover:text-black"
+            title="Очистить все поля"
+          >
+            <TbTrash className="text-xl" />
+          </button>
+  
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-6">
+            <div>
+              <strong>Сумма налога:</strong> {safe(res.tax)} ₽
+            </div>
+            <div>
+              <strong>Итого с налогом:</strong> {safe(res.total)} ₽
+            </div>
+            <div>
+              <strong>Учтено месяцев:</strong> {months}
+            </div>
+          </div>
+  
+          <div className="text-xs text-gray-500">
+            Налог = НБ × СН × (месяцы / 12)
+          </div>
         </div>
       </>
     );
@@ -236,10 +270,35 @@ export default function TaxesPage() {
       unrealized: `НерП = ЧП - фонды = ${np} - ${deductions} = ${unrealized}`,
       wholesale: `ОпЦ = СС + ПП + НДС = ${effectiveCost} + ${pp} + ${vat} = ${wholesalePrice}`
     };
+
+    const resetFields = () => {
+      setRevenue('');
+      setIndirect('');
+      setCost('');
+      setMgmt('');
+      setComm('');
+      setNonOpInc('');
+      setNonOpExp('');
+      setTaxes('');
+      setFunds('');
+    
+      // Детализированные:
+      setBuildingCost('');
+      setBuildingYears('');
+      setEquipmentCost('');
+      setEquipmentYears('');
+      setMaterialCost('');
+      setWaste('');
+      setSalaryFund('');
+      setSocialRate('');
+      setCreditAmount('');
+      setCreditRate('');
+      setCreditMonths('');
+    };
   
     return (
       <>
-        <h2 className="text-xl font-bold mb-3">Налог на прибыль</h2>
+        <h2 className="text-xl font-bold mb-3">Прибыль и налоги</h2>
   
         <div className="flex items-center gap-2 mb-4 text-sm">
           <input
@@ -299,8 +358,16 @@ export default function TaxesPage() {
           </div>
         )}
   
-        <div className="mt-6 p-4 bg-white rounded shadow text-sm space-y-3">
+        <div className="relative mt-6 p-4 bg-white rounded shadow text-sm space-y-3">
           <h4 className="font-semibold text-base mb-1">📊 Финансовый результат</h4>
+
+          <button
+            onClick={resetFields}
+            className="absolute top-4 right-4 text-gray-600 hover:text-black"
+            title="Очистить все поля"
+          >
+            <TbTrash className="text-xl" />
+          </button>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
             <div>
@@ -401,6 +468,7 @@ export default function TaxesPage() {
             <li>20% — стандартная ставка</li>
             <li>10% — социально значимые товары</li>
             <li>0% — экспорт, международные перевозки</li>
+            <li>10/110 и 20/120 (т.е. ставка/(100+ставка)) используют, когда из выручки нужно получить НДС</li>
           </ul>
           <p className="text-xs text-gray-500">Источник: <a className="text-blue-600 underline" href="https://www.consultant.ru/document/cons_doc_LAW_28165/35cc6698564adc4507baa31c9cfdbb4f2516d068/" target="_blank" rel="noopener noreferrer">НК РФ ч. 2, гл. 21, ст. 164</a></p>
         </section>
@@ -522,7 +590,7 @@ export default function TaxesPage() {
           onClick={() => setMode('profit')}
           className={`px-2 sm:px-4 py-2 rounded ${mode === 'profit' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-800'}`}
         >
-          Налог на прибыль
+          Прибыль и налоги
         </button>
         <button
           onClick={() => setMode('reference')}
