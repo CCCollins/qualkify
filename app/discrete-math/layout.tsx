@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     locale: 'ru_RU',
     images: [
       {
-        url: 'https://qualkify.vercel.app/favicon.ico',
+        url: 'https://qualkify.vercel.app/og-image.png',
         width: 1200,
         height: 630,
         alt: 'Qualkify — Дискретная математика',
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Qualkify | Дискретная математика',
     description: 'Темы дискретной математики: логика, множества, графы и т.д.',
-    images: ['https://qualkify.vercel.app/favicon.ico'],
+    images: ['https://qualkify.vercel.app/og-image.png'],
     creator: '@qualkify',
   },
   robots: 'index, follow',

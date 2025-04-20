@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     locale: 'ru_RU',
     images: [
       {
-        url: 'https://qualkify.vercel.app/favicon.ico',
+        url: 'https://qualkify.vercel.app/og-image.png',
         width: 1200,
         height: 630,
         alt: 'Qualkify — Статистика',
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Qualkify | Статистика',
     description: 'Раздел по статистике: средние, дисперсия и другие методы анализа.',
-    images: ['https://qualkify.vercel.app/favicon.ico'],
+    images: ['https://qualkify.vercel.app/og-image.png'],
     creator: '@qualkify',
   },
   robots: 'index, follow',
