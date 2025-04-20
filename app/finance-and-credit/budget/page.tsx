@@ -7,6 +7,7 @@ import { TbSmartHome, TbTrash } from 'react-icons/tb';
 export default function BudgetQuickPage() {
   const [incomeRaw, setIncomeRaw] = useState('');
   const [expensesRaw, setExpensesRaw] = useState('');
+  const [precision, setPrecision] = useState(2);
 
   const parseValues = (str: string): number[] => {
     return str
@@ -39,8 +40,8 @@ export default function BudgetQuickPage() {
   const percent = (val: number) =>
     incomeSum > 0 ? Math.min(Math.abs(val / incomeSum) * 100, 100) : 0;
 
-  const safe = (n: number) =>
-    isNaN(n) || !isFinite(n) ? '0,00' : n.toFixed(2).replace('.', ',');
+  const safe = (n: number, digits = precision) =>
+    isNaN(n) || !isFinite(n) ? '0,00' : n.toFixed(digits).replace('.', ',');
 
   const resetFields = () => {
     setIncomeRaw('');
@@ -92,7 +93,20 @@ export default function BudgetQuickPage() {
       </div>
 
       <div className="relative bg-white p-4 rounded shadow text-sm space-y-3 mt-4">
-        <h4 className="font-semibold text-base mb-1 pr-8">📊 Результаты бюджета</h4>
+        <h4 className="font-semibold text-base mb-1 pr-8">
+          📊 Результаты бюджета (
+          <input
+            id="precision"
+            type="number"
+            min={0}
+            max={10}
+            value={precision}
+            onChange={(e) => setPrecision(Number(e.target.value))}
+            onFocus={(e) => e.target.select()}
+            className="w-8"
+          />
+          знаков)
+        </h4>
 
         <button
           onClick={resetFields}
@@ -103,9 +117,9 @@ export default function BudgetQuickPage() {
         </button>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
-          <div><strong>Сумма доходов:</strong> {safe(incomeSum)}</div>
-          <div><strong>Сумма расходов:</strong> {safe(expenseSum)}</div>
-          <div><strong>Сальдо:</strong> {safe(balance)}</div>
+          <div><strong>Сумма доходов:</strong> {safe(incomeSum, precision)}</div>
+          <div><strong>Сумма расходов:</strong> {safe(expenseSum, precision)}</div>
+          <div><strong>Сальдо:</strong> {safe(balance, precision)}</div>
           <div>
             <strong>Бюджет:</strong>{' '}
             <span className={`font-semibold ${balance > 0 ? 'text-green-600' : balance < 0 ? 'text-red-600' : 'text-yellow-600'}`}>

@@ -160,6 +160,7 @@ export default function EfficiencyAnalysis() {
                 max={10}
                 value={precision}
                 onChange={(e) => setPrecision(Number(e.target.value))}
+                onFocus={(e) => e.target.select()}
                 className="w-8"
                 />
                 знаков)

@@ -186,6 +186,7 @@ export default function TaxesPage() {
               max={10}
               value={precision}
               onChange={(e) => setPrecision(Number(e.target.value))}
+              onFocus={(e) => e.target.select()}
               className="w-8"
             />
             знаков)
@@ -245,7 +246,7 @@ export default function TaxesPage() {
           <h3 className="font-semibold text-base">Основное</h3>
           <ul className="list-disc list-inside">
             <li>Налоги округляются вверх до целого (а другие отчисления - нет)</li>
-            <li>Из-за такого округления, если мы расчитываем налоги поквартально (по 3 месяца), то последний квартал вычисляется как сумма налогов за весь период - сумма налогов в предыдущих кварталах</li>
+            <li>Из-за такого округления, если мы рассчитываем налоги поквартально (по 3 месяца), то последний квартал вычисляется как сумма налогов за весь период - сумма налогов в предыдущих кварталах</li>
           </ul>
         </section>
 
