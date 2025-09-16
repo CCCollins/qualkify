@@ -588,66 +588,6 @@ const GraphicalMethodCalculator: React.FC = () => {
     setChartData({ datasets })
   }
 
-  const chartOptions: ChartOptions<"line" | "scatter"> = {
-    responsive: true,
-    maintainAspectRatio: true,
-    aspectRatio: window?.innerWidth < 768 ? 1 : 1.5,
-    plugins: {
-      legend: {
-        position: "top",
-        labels: {
-          boxWidth: 12,
-          padding: 8,
-          font: {
-            size: window?.innerWidth < 768 ? 10 : 12,
-          },
-        },
-      },
-      title: {
-        display: true,
-        text: "Графическое представление решения",
-        font: {
-          size: window?.innerWidth < 768 ? 12 : 14,
-        },
-      },
-    },
-    scales: {
-      x: {
-        type: "linear",
-        position: "bottom",
-        title: {
-          display: true,
-          text: variableNames[0],
-          font: {
-            size: window?.innerWidth < 768 ? 10 : 12,
-          },
-        },
-        min: 0,
-        ticks: {
-          font: {
-            size: window?.innerWidth < 768 ? 9 : 11,
-          },
-        },
-      },
-      y: {
-        type: "linear",
-        title: {
-          display: true,
-          text: variableNames[1],
-          font: {
-            size: window?.innerWidth < 768 ? 10 : 12,
-          },
-        },
-        min: 0,
-        ticks: {
-          font: {
-            size: window?.innerWidth < 768 ? 9 : 11,
-          },
-        },
-      },
-    },
-  }
-
   return (
     <div className="bg-white p-3 sm:p-6 rounded-lg shadow-lg w-full flex flex-col space-y-4 sm:space-y-8">
       <div className="flex flex-col lg:grid lg:grid-cols-2 gap-4 sm:gap-8 items-stretch">
