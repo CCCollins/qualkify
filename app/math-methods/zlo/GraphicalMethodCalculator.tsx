@@ -1,8 +1,9 @@
-'use client';
+"use client"
 
-import React, { useState } from 'react';
-import { evaluate, format } from 'mathjs';
-import { Chart } from 'react-chartjs-2';
+import type React from "react"
+import { useState } from "react"
+import { evaluate } from "mathjs"
+import { Chart } from "react-chartjs-2"
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -13,11 +14,11 @@ import {
   Tooltip,
   Legend,
   Filler,
-  ChartData,
-  ChartOptions,
-  ChartDataset,
+  type ChartData,
+  type ChartOptions,
+  type ChartDataset,
   ScatterController,
-} from 'chart.js';
+} from "chart.js"
 
 ChartJS.register(
   CategoryScale,
@@ -28,268 +29,429 @@ ChartJS.register(
   Tooltip,
   Legend,
   Filler,
-  ScatterController
-);
+  ScatterController,
+)
+
+class Fraction {
+  numerator: number
+  denominator: number
+
+  constructor(numerator: number, denominator = 1) {
+    if (denominator === 0) throw new Error("Denominator cannot be zero")
+
+    // Handle negative fractions
+    if (denominator < 0) {
+      numerator = -numerator
+      denominator = -denominator
+    }
+
+    const gcd = this.gcd(Math.abs(numerator), Math.abs(denominator))
+    this.numerator = numerator / gcd
+    this.denominator = denominator / gcd
+  }
+
+  private gcd(a: number, b: number): number {
+    return b === 0 ? a : this.gcd(b, a % b)
+  }
+
+  static fromDecimal(decimal: number, tolerance = 1e-6): Fraction {
+    if (Math.abs(decimal) < tolerance) return new Fraction(0, 1)
+
+    const sign = decimal < 0 ? -1 : 1
+    decimal = Math.abs(decimal)
+
+    const wholePart = Math.floor(decimal)
+    const fractionalPart = decimal - wholePart
+
+    if (fractionalPart < tolerance) {
+      return new Fraction(sign * wholePart, 1)
+    }
+
+    // Use continued fractions algorithm
+    let a = fractionalPart
+    let h1 = 1,
+      h2 = 0
+    let k1 = 0,
+      k2 = 1
+
+    for (let i = 0; i < 20; i++) {
+      const intPart = Math.floor(a)
+      const h = intPart * h1 + h2
+      const k = intPart * k1 + k2
+
+      if (Math.abs(decimal - (wholePart + h / k)) < tolerance) {
+        return new Fraction(sign * (wholePart * k + h), k)
+      }
+
+      a = 1 / (a - intPart)
+      h2 = h1
+      h1 = h
+      k2 = k1
+      k1 = k
+
+      if (Math.abs(a - Math.floor(a)) < tolerance) break
+    }
+
+    return new Fraction(sign * (wholePart * k1 + h1), k1)
+  }
+
+  toString(): string {
+    if (this.denominator === 1) return this.numerator.toString()
+    if (this.numerator === 0) return "0"
+    return `${this.numerator}/${this.denominator}`
+  }
+
+  toDecimal(): number {
+    return this.numerator / this.denominator
+  }
+
+  add(other: Fraction): Fraction {
+    return new Fraction(
+      this.numerator * other.denominator + other.numerator * this.denominator,
+      this.denominator * other.denominator,
+    )
+  }
+
+  multiply(other: Fraction): Fraction {
+    return new Fraction(this.numerator * other.numerator, this.denominator * other.denominator)
+  }
+}
+
+const formatAsFraction = (value: number): string => {
+  const fraction = Fraction.fromDecimal(value)
+  return fraction.toString()
+}
 
 // --- Helper Types and Functions ---
 
 type ParsedConstraint = {
-  coeffs: number[];
-  operator: '<=' | '>=' | '=';
-  rhs: number;
-};
+  coeffs: number[]
+  operator: "<=" | ">=" | "="
+  rhs: number
+}
 
-type Point = { x: number; y: number };
+type Point = { x: number; y: number }
 
 const parseExpression = (expr: string, var1: string, var2: string): number[] => {
-  const processedExpr = expr.replace(/(\d)([a-zA-Z])/g, '$1*$2');
-  const termRegex = /([+-])?\s*(\d+\.?\d*)?\s*\*?\s*([a-zA-Z][a-zA-Z0-9_]*)/g;
-  const coeffs: { [key: string]: number } = { [var1]: 0, [var2]: 0 };
-  const signedExpr = (processedExpr.startsWith('+') || processedExpr.startsWith('-')) ? processedExpr : `+${processedExpr}`;
-  let match;
+  const processedExpr = expr.replace(/(\d)([a-zA-Z])/g, "$1*$2")
+  const termRegex = /([+-])?\s*(\d+\.?\d*)?\s*\*?\s*([a-zA-Z][a-zA-Z0-9_]*)/g
+  const coeffs: { [key: string]: number } = { [var1]: 0, [var2]: 0 }
+  const signedExpr =
+    processedExpr.startsWith("+") || processedExpr.startsWith("-") ? processedExpr : `+${processedExpr}`
+  let match
   while ((match = termRegex.exec(signedExpr)) !== null) {
-    const [, sign, coeffStr, variable] = match;
-    if (variable !== var1 && variable !== var2) continue;
-    let coeff = parseFloat(coeffStr || '1');
-    if (sign === '-') {
-      coeff = -coeff;
+    const [, sign, coeffStr, variable] = match
+    if (variable !== var1 && variable !== var2) continue
+    let coeff = Number.parseFloat(coeffStr || "1")
+    if (sign === "-") {
+      coeff = -coeff
     }
-    coeffs[variable] += coeff;
+    coeffs[variable] += coeff
   }
-  return [coeffs[var1], coeffs[var2]];
-};
+  return [coeffs[var1], coeffs[var2]]
+}
 
 const parseConstraint = (str: string, var1: string, var2: string): ParsedConstraint | null => {
-  const parts = str.split(/(<=|>=|=)/);
-  if (parts.length < 3) return null;
-  const lhs = parts[0];
-  const operator = parts[1].trim() as ParsedConstraint['operator'];
-  const rhs = parseFloat(parts[2].trim());
-  if (isNaN(rhs)) return null;
-  const coeffs = parseExpression(lhs, var1, var2);
-  return { coeffs, operator, rhs };
-};
+  const parts = str.split(/(<=|>=|=)/)
+  if (parts.length < 3) return null
+  const lhs = parts[0]
+  const operator = parts[1].trim() as ParsedConstraint["operator"]
+  const rhs = Number.parseFloat(parts[2].trim())
+  if (isNaN(rhs)) return null
+  const coeffs = parseExpression(lhs, var1, var2)
+  return { coeffs, operator, rhs }
+}
 
 const solveLinearSystem = (c1: ParsedConstraint, c2: ParsedConstraint): Point | null => {
-  const [a1, b1] = c1.coeffs;
-  const [a2, b2] = c2.coeffs;
-  const rhs1 = c1.rhs;
-  const rhs2 = c2.rhs;
-  const determinant = a1 * b2 - a2 * b1;
+  const [a1, b1] = c1.coeffs
+  const [a2, b2] = c2.coeffs
+  const rhs1 = c1.rhs
+  const rhs2 = c2.rhs
+  const determinant = a1 * b2 - a2 * b1
   if (Math.abs(determinant) < 1e-9) {
-    return null;
+    return null
   }
-  const x = (b2 * rhs1 - b1 * rhs2) / determinant;
-  const y = (a1 * rhs2 - a2 * rhs1) / determinant;
-  return { x, y };
-};
+  const x = (b2 * rhs1 - b1 * rhs2) / determinant
+  const y = (a1 * rhs2 - a2 * rhs1) / determinant
+  return { x, y }
+}
 
 const isPointFeasible = (point: Point, constraints: ParsedConstraint[]): boolean => {
-  const tolerance = 1e-9;
-  if (point.x < -tolerance || point.y < -tolerance) return false;
+  const tolerance = 1e-9
+  if (point.x < -tolerance || point.y < -tolerance) return false
   for (const constraint of constraints) {
-    const { coeffs, operator, rhs } = constraint;
-    const val = coeffs[0] * point.x + coeffs[1] * point.y;
-    let isFeasible = false;
+    const { coeffs, operator, rhs } = constraint
+    const val = coeffs[0] * point.x + coeffs[1] * point.y
+    let isFeasible = false
     switch (operator) {
-      case '<=':
-        isFeasible = val <= rhs + tolerance;
-        break;
-      case '>=':
-        isFeasible = val >= rhs - tolerance;
-        break;
-      case '=':
-        isFeasible = Math.abs(val - rhs) < tolerance;
-        break;
+      case "<=":
+        isFeasible = val <= rhs + tolerance
+        break
+      case ">=":
+        isFeasible = val >= rhs - tolerance
+        break
+      case "=":
+        isFeasible = Math.abs(val - rhs) < tolerance
+        break
     }
-    if (!isFeasible) return false;
+    if (!isFeasible) return false
   }
-  return true;
-};
+  return true
+}
 
 interface ConstraintInput {
-  id: number;
-  value: string;
+  id: number
+  value: string
 }
 
 const GraphicalMethodCalculator: React.FC = () => {
-  const [objective, setObjective] = useState('6x + 5y');
-  const [objectiveType, setObjectiveType] = useState<'maximize' | 'minimize'>('maximize');
+  const [objective, setObjective] = useState("6x + 5y")
+  const [objectiveType, setObjectiveType] = useState<"maximize" | "minimize">("maximize")
   const [constraints, setConstraints] = useState<ConstraintInput[]>([
-    { id: 1, value: '3x + 2y <= 10' },
-    { id: 2, value: '4x + y <= 8' },
-    { id: 3, value: 'x >= 0' },
-    { id: 4, value: 'y >= 0' },
-  ]);
-  const [results, setResults] = useState<string | null>(null);
-  const [chartData, setChartData] = useState<ChartData<'line' | 'scatter'> | null>(null);
-  const [variableNames, setVariableNames] = useState<[string, string]>(['x', 'y']);
+    { id: 1, value: "3x + 2y <= 10" },
+    { id: 2, value: "4x + y <= 8" },
+    { id: 3, value: "x >= 0" },
+    { id: 4, value: "y >= 0" },
+  ])
+  const [results, setResults] = useState<string | null>(null)
+  const [chartData, setChartData] = useState<ChartData<"line" | "scatter"> | null>(null)
+  const [variableNames, setVariableNames] = useState<[string, string]>(["x", "y"])
 
   const handleAddConstraint = () => {
-    setConstraints([...constraints, { id: Date.now(), value: '' }]);
-  };
+    setConstraints([...constraints, { id: Date.now(), value: "" }])
+  }
 
   const handleRemoveConstraint = (id: number) => {
-    setConstraints(constraints.filter((c) => c.id !== id));
-  };
+    setConstraints(constraints.filter((c) => c.id !== id))
+  }
 
   const handleConstraintChange = (id: number, value: string) => {
-    setConstraints(constraints.map((c) => (c.id === id ? { ...c, value } : c)));
-  };
+    setConstraints(constraints.map((c) => (c.id === id ? { ...c, value } : c)))
+  }
 
   const calculate = () => {
-    setChartData(null);
+    setChartData(null)
 
-    const allInputs = [objective, ...constraints.map((c) => c.value)];
-    const detectedVars = new Set<string>();
-    const varRegex = /[a-zA-Z_][a-zA-Z0-9_]*/g;
+    const allInputs = [objective, ...constraints.map((c) => c.value)]
+    const detectedVars = new Set<string>()
+    const varRegex = /[a-zA-Z_][a-zA-Z0-9_]*/g
     allInputs.forEach((input) => {
-      const lhs = input.split(/(<=|>=|=)/)[0];
-      const matches = lhs.match(varRegex);
+      const lhs = input.split(/(<=|>=|=)/)[0]
+      const matches = lhs.match(varRegex)
       if (matches) {
-        matches.forEach((v) => detectedVars.add(v));
+        matches.forEach((v) => detectedVars.add(v))
       }
-    });
+    })
 
-    const sortedVars = Array.from(detectedVars).sort();
+    const sortedVars = Array.from(detectedVars).sort()
     if (sortedVars.length > 2) {
-      setResults(`Ошибка: Графический метод поддерживает только две переменные. Найдено: ${sortedVars.join(', ')}`);
-      return;
+      setResults(`Ошибка: Графический метод поддерживает только две переменные. Найдено: ${sortedVars.join(", ")}`)
+      return
     }
     if (sortedVars.length < 2) {
-      setResults(`Ошибка: Графический метод требует две переменные. Найдено: ${sortedVars.join(', ')}`);
-      return;
+      setResults(`Ошибка: Графический метод требует две переменные. Найдено: ${sortedVars.join(", ")}`)
+      return
     }
-    const [var1, var2] = sortedVars as [string, string];
-    setVariableNames([var1, var2]);
+    const [var1, var2] = sortedVars as [string, string]
+    setVariableNames([var1, var2])
 
     const parsedConstraints = constraints
       .map((c) => parseConstraint(c.value, var1, var2))
-      .filter((c): c is ParsedConstraint => c !== null);
+      .filter((c): c is ParsedConstraint => c !== null)
 
     if (parsedConstraints.length < 2) {
-      setResults('Ошибка: необходимо как минимум два ограничения.');
-      return;
+      setResults("Ошибка: необходимо как минимум два ограничения.")
+      return
     }
 
-    const intersectionPoints: Point[] = [];
+    const intersectionPoints: Point[] = []
     const extendedConstraints = [
-        ...parsedConstraints,
-        { coeffs: [1, 0], operator: '>=' as const, rhs: 0 }, // x >= 0
-        { coeffs: [0, 1], operator: '>=' as const, rhs: 0 }, // y >= 0
-    ];
+      ...parsedConstraints,
+      { coeffs: [1, 0], operator: ">=" as const, rhs: 0 }, // x >= 0
+      { coeffs: [0, 1], operator: ">=" as const, rhs: 0 }, // y >= 0
+    ]
 
     for (let i = 0; i < extendedConstraints.length; i++) {
       for (let j = i + 1; j < extendedConstraints.length; j++) {
-        const point = solveLinearSystem(extendedConstraints[i], extendedConstraints[j]);
+        const point = solveLinearSystem(extendedConstraints[i], extendedConstraints[j])
         if (point) {
-          intersectionPoints.push(point);
+          intersectionPoints.push(point)
         }
       }
     }
-    
-    const feasiblePoints = intersectionPoints.filter(p => isPointFeasible(p, parsedConstraints));
+
+    const feasiblePoints = intersectionPoints.filter((p) => isPointFeasible(p, parsedConstraints))
 
     const uniqueFeasiblePoints = feasiblePoints.reduce<Point[]>((acc, point) => {
       if (!acc.some((p) => Math.abs(p.x - point.x) < 1e-9 && Math.abs(p.y - point.y) < 1e-9)) {
-        acc.push(point);
+        acc.push(point)
       }
-      return acc;
-    }, []);
+      return acc
+    }, [])
 
     if (uniqueFeasiblePoints.length === 0) {
-      setResults('Не удалось найти допустимых угловых точек. Область может быть неограниченной или не существует.');
-      return;
+      setResults("Не удалось найти допустимых угловых точек. Область может быть неограниченной или не существует.")
+      return
     }
 
-    let optimalPoint: Point | null = null;
-    let optimalValue = objectiveType === 'maximize' ? -Infinity : Infinity;
+    let optimalPoint: Point | null = null
+    let optimalValue = objectiveType === "maximize" ? Number.NEGATIVE_INFINITY : Number.POSITIVE_INFINITY
 
     uniqueFeasiblePoints.forEach((point) => {
       try {
-        const scope = { [var1]: point.x, [var2]: point.y };
-        const value = evaluate(objective, scope);
-        if (objectiveType === 'maximize' && value > optimalValue) {
-          optimalValue = value;
-          optimalPoint = point;
-        } else if (objectiveType === 'minimize' && value < optimalValue) {
-          optimalValue = value;
-          optimalPoint = point;
+        const scope = { [var1]: point.x, [var2]: point.y }
+        const value = evaluate(objective, scope)
+        if (objectiveType === "maximize" && value > optimalValue) {
+          optimalValue = value
+          optimalPoint = point
+        } else if (objectiveType === "minimize" && value < optimalValue) {
+          optimalValue = value
+          optimalPoint = point
         }
       } catch (error) {
-        setResults(`Ошибка при вычислении целевой функции: ${error instanceof Error ? error.message : String(error)}`);
-        return;
+        setResults(`Ошибка при вычислении целевой функции: ${error instanceof Error ? error.message : String(error)}`)
+        return
       }
-    });
+    })
 
-    let steps = 'Шаги решения:\n\n';
-    steps += '1. Найдены все возможные точки пересечения (включая оси):\n';
-    intersectionPoints.forEach(p => {
-      steps += `   - (${format(p.x, { notation: 'fixed', precision: 2 })}, ${format(p.y, { notation: 'fixed', precision: 2 })})\n`;
-    });
+    let steps = "Шаг 1. Поиск точек пересечения ограничений\n\n"
 
-    steps += '\n2. Найдены угловые точки допустимой области (прошедшие проверку):\n';
-    uniqueFeasiblePoints.forEach((p) => {
-      steps += `   - (${format(p.x, { notation: 'fixed', precision: 2 })}, ${format(p.y, { notation: 'fixed', precision: 2 })})\n`;
-    });
-    steps += '\n3. Вычисление значения целевой функции в каждой точке:\n';
+    // Show intersection calculations
+    const constraintPairs: Array<[ParsedConstraint, ParsedConstraint, string, string]> = []
+    for (let i = 0; i < extendedConstraints.length; i++) {
+      for (let j = i + 1; j < extendedConstraints.length; j++) {
+        const c1 = extendedConstraints[i]
+        const c2 = extendedConstraints[j]
+        const label1 =
+          i < parsedConstraints.length ? `Ограничение ${i + 1}` : i === parsedConstraints.length ? "x ≥ 0" : "y ≥ 0"
+        const label2 =
+          j < parsedConstraints.length ? `Ограничение ${j + 1}` : j === parsedConstraints.length ? "x ≥ 0" : "y ≥ 0"
+        constraintPairs.push([c1, c2, label1, label2])
+      }
+    }
+
+    constraintPairs.forEach(([c1, c2, label1, label2]) => {
+      const [a1, b1] = c1.coeffs
+      const [a2, b2] = c2.coeffs
+      const rhs1 = c1.rhs
+      const rhs2 = c2.rhs
+
+      steps += `Пересечение: ${label1} и ${label2}\n`
+      steps += `Система уравнений:\n`
+      steps += `  ${formatAsFraction(a1)}${var1} + ${formatAsFraction(b1)}${var2} = ${formatAsFraction(rhs1)}\n`
+      steps += `  ${formatAsFraction(a2)}${var1} + ${formatAsFraction(b2)}${var2} = ${formatAsFraction(rhs2)}\n`
+
+      const determinant = a1 * b2 - a2 * b1
+      if (Math.abs(determinant) < 1e-9) {
+        steps += `  Определитель = 0, прямые параллельны\n\n`
+      } else {
+        steps += `  Определитель Δ = ${formatAsFraction(a1)} × ${formatAsFraction(b2)} - ${formatAsFraction(a2)} × ${formatAsFraction(b1)} = ${formatAsFraction(determinant)}\n`
+        const x = (b2 * rhs1 - b1 * rhs2) / determinant
+        const y = (a1 * rhs2 - a2 * rhs1) / determinant
+        steps += `  ${var1} = (${formatAsFraction(b2)} × ${formatAsFraction(rhs1)} - ${formatAsFraction(b1)} × ${formatAsFraction(rhs2)}) / ${formatAsFraction(determinant)} = ${formatAsFraction(x)}\n`
+        steps += `  ${var2} = (${formatAsFraction(a1)} × ${formatAsFraction(rhs2)} - ${formatAsFraction(a2)} × ${formatAsFraction(rhs1)}) / ${formatAsFraction(determinant)} = ${formatAsFraction(y)}\n`
+        steps += `  Точка пересечения: (${formatAsFraction(x)}, ${formatAsFraction(y)})\n\n`
+      }
+    })
+
+    steps += "Шаг 2. Проверка допустимости точек\n\n"
+    intersectionPoints.forEach((point, index) => {
+      steps += `Точка (${formatAsFraction(point.x)}, ${formatAsFraction(point.y)}):\n`
+
+      // Check non-negativity
+      if (point.x < -1e-9 || point.y < -1e-9) {
+        steps += `  ❌ Не удовлетворяет условию неотрицательности\n\n`
+        return
+      }
+
+      let feasible = true
+      parsedConstraints.forEach((constraint, i) => {
+        const { coeffs, operator, rhs } = constraint
+        const val = coeffs[0] * point.x + coeffs[1] * point.y
+        steps += `  Ограничение ${i + 1}: ${formatAsFraction(coeffs[0])} × ${formatAsFraction(point.x)} + ${formatAsFraction(coeffs[1])} × ${formatAsFraction(point.y)} = ${formatAsFraction(val)}`
+
+        let satisfied = false
+        switch (operator) {
+          case "<=":
+            satisfied = val <= rhs + 1e-9
+            steps += ` ${satisfied ? "≤" : ">"} ${formatAsFraction(rhs)} ${satisfied ? "✓" : "❌"}\n`
+            break
+          case ">=":
+            satisfied = val >= rhs - 1e-9
+            steps += ` ${satisfied ? "≥" : "<"} ${formatAsFraction(rhs)} ${satisfied ? "✓" : "❌"}\n`
+            break
+          case "=":
+            satisfied = Math.abs(val - rhs) < 1e-9
+            steps += ` ${satisfied ? "=" : "≠"} ${formatAsFraction(rhs)} ${satisfied ? "✓" : "❌"}\n`
+            break
+        }
+
+        if (!satisfied) feasible = false
+      })
+
+      if (feasible) {
+        steps += `  ✅ Точка допустима\n\n`
+      } else {
+        steps += `  ❌ Точка недопустима\n\n`
+      }
+    })
+
+    steps += "Шаг 3. Вычисление целевой функции в угловых точках\n\n"
+    steps += `Целевая функция: F = ${objective}\n\n`
+
     uniqueFeasiblePoints.forEach((point) => {
-      const scope = { [var1]: point.x, [var2]: point.y };
-      const value = evaluate(objective, scope);
-      steps += `   - F(${format(point.x, { notation: 'fixed', precision: 2 })}, ${format(point.y, {
-        notation: 'fixed',
-        precision: 2,
-      })}) = ${format(value, { notation: 'fixed', precision: 2 })}\n`;
-    });
+      const scope = { [var1]: point.x, [var2]: point.y }
+      const value = evaluate(objective, scope)
+      const objCoeffs = parseExpression(objective, var1, var2)
+
+      steps += `F(${formatAsFraction(point.x)}, ${formatAsFraction(point.y)}) = ${formatAsFraction(objCoeffs[0])} × ${formatAsFraction(point.x)} + ${formatAsFraction(objCoeffs[1])} × ${formatAsFraction(point.y)}\n`
+      steps += `  = ${formatAsFraction(objCoeffs[0] * point.x)} + ${formatAsFraction(objCoeffs[1] * point.y)} = ${formatAsFraction(value)}\n\n`
+    })
 
     if (
       optimalPoint &&
-      typeof (optimalPoint as Point).x === 'number' &&
-      typeof (optimalPoint as Point).y === 'number'
+      typeof (optimalPoint as Point).x === "number" &&
+      typeof (optimalPoint as Point).y === "number"
     ) {
-      steps += `\n4. Оптимальное решение:\n`;
-      steps += `   - ${objectiveType === 'maximize' ? 'Максимальное' : 'Минимальное'} значение F = ${format(optimalValue, {
-        notation: 'fixed',
-        precision: 2,
-      })} достигается в точке (${format((optimalPoint as Point).x, { notation: 'fixed', precision: 2 })}, ${format((optimalPoint as Point).y, { notation: 'fixed', precision: 2 })})\n`;
+      steps += `Шаг 4. Оптимальное решение\n\n`
+      steps += `${objectiveType === "maximize" ? "Максимальное" : "Минимальное"} значение целевой функции:\n`
+      steps += `F* = ${formatAsFraction(optimalValue)}\n`
+      steps += `Достигается в точке: (${formatAsFraction((optimalPoint as Point).x)}, ${formatAsFraction((optimalPoint as Point).y)})\n`
+      steps += `\nОтвет: ${var1}* = ${formatAsFraction((optimalPoint as Point).x)}, ${var2}* = ${formatAsFraction((optimalPoint as Point).y)}, F* = ${formatAsFraction(optimalValue)}`
     } else {
-      steps += '\nНе удалось найти оптимальное решение.';
+      steps += "\nНе удалось найти оптимальное решение."
     }
 
-    setResults(steps);
-    generateChartData(parsedConstraints, uniqueFeasiblePoints, optimalPoint, objective, variableNames);
-  };
+    setResults(steps)
+    generateChartData(parsedConstraints, uniqueFeasiblePoints, optimalPoint, objective, variableNames)
+  }
 
   const generateChartData = (
     constraints: ParsedConstraint[],
     feasiblePoints: Point[],
     optimalPoint: Point | null,
     objective: string,
-    variableNames: [string, string]
+    variableNames: [string, string],
   ) => {
-    const allPoints: Point[] = [...feasiblePoints];
+    const allPoints: Point[] = [...feasiblePoints]
     if (optimalPoint) {
-        allPoints.push(optimalPoint);
+      allPoints.push(optimalPoint)
     }
 
-    const xMax = allPoints.length > 0
-        ? Math.max(...(allPoints as Point[]).map((p: Point) => p.x)) * 1.2 + 5
-        : 5;
-    const yMax = allPoints.length > 0
-        ? Math.max(...(allPoints as Point[]).map((p: Point) => p.y)) * 1.2 + 5
-        : 5;
+    const xMax = allPoints.length > 0 ? Math.max(...(allPoints as Point[]).map((p: Point) => p.x)) * 1.2 + 5 : 5
+    const yMax = allPoints.length > 0 ? Math.max(...(allPoints as Point[]).map((p: Point) => p.y)) * 1.2 + 5 : 5
 
-    const datasets: ChartDataset<'line' | 'scatter'>[] = constraints.map((c, i) => {
-      const [a, b] = c.coeffs;
-      const rhs = c.rhs;
-      let p1: Point, p2: Point;
+    const datasets: ChartDataset<"line" | "scatter">[] = constraints.map((c, i) => {
+      const [a, b] = c.coeffs
+      const rhs = c.rhs
+      let p1: Point, p2: Point
 
       if (Math.abs(b) > 1e-9) {
-        p1 = { x: 0, y: rhs / b };
-        p2 = { x: xMax, y: (rhs - a * xMax) / b };
+        p1 = { x: 0, y: rhs / b }
+        p2 = { x: xMax, y: (rhs - a * xMax) / b }
       } else {
-        p1 = { x: rhs / a, y: 0 };
-        p2 = { x: rhs / a, y: yMax };
+        p1 = { x: rhs / a, y: 0 }
+        p2 = { x: rhs / a, y: yMax }
       }
       return {
         label: `Ограничение ${i + 1}`,
@@ -299,91 +461,91 @@ const GraphicalMethodCalculator: React.FC = () => {
         fill: false,
         tension: 0,
         pointRadius: 0,
-        type: 'line' as const,
-      };
-    });
+        type: "line" as const,
+      }
+    })
 
     if (feasiblePoints.length > 1) {
-      const sortedFeasiblePoints = [...feasiblePoints].sort((a, b) => Math.atan2(a.y, a.x) - Math.atan2(b.y, b.x));
+      const sortedFeasiblePoints = [...feasiblePoints].sort((a, b) => Math.atan2(a.y, a.x) - Math.atan2(b.y, b.x))
       datasets.push({
-        label: 'Допустимая область',
-        data: ([...sortedFeasiblePoints, sortedFeasiblePoints[0]]).map((p: Point) => ({ x: p.x, y: p.y })),
-        borderColor: 'rgba(75, 192, 192, 1)',
-        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+        label: "Допустимая область",
+        data: [...sortedFeasiblePoints, sortedFeasiblePoints[0]].map((p: Point) => ({ x: p.x, y: p.y })),
+        borderColor: "rgba(75, 192, 192, 1)",
+        backgroundColor: "rgba(75, 192, 192, 0.2)",
         borderWidth: 1,
         fill: true,
         pointRadius: 0,
-        type: 'line' as const,
-      });
+        type: "line" as const,
+      })
     }
 
     datasets.push({
-      label: 'Угловые точки',
+      label: "Угловые точки",
       data: feasiblePoints.map((p: Point) => ({ x: p.x, y: p.y })),
-      backgroundColor: 'rgba(255, 99, 132, 1)',
+      backgroundColor: "rgba(255, 99, 132, 1)",
       pointRadius: 5,
-      type: 'scatter' as const,
-    });
+      type: "scatter" as const,
+    })
 
     if (optimalPoint) {
       datasets.push({
-        label: 'Оптимальная точка',
+        label: "Оптимальная точка",
         data: [{ x: optimalPoint.x, y: optimalPoint.y }],
-        backgroundColor: 'rgba(54, 162, 235, 1)',
+        backgroundColor: "rgba(54, 162, 235, 1)",
         pointRadius: 7,
-        pointStyle: 'rectRot',
-        type: 'scatter' as const,
-      });
+        pointStyle: "rectRot",
+        type: "scatter" as const,
+      })
     }
 
     // Add gradient vector
-    const objCoeffs = parseExpression(objective, variableNames[0], variableNames[1]);
-    const gradientMagnitude = Math.sqrt(objCoeffs[0]**2 + objCoeffs[1]**2);
+    const objCoeffs = parseExpression(objective, variableNames[0], variableNames[1])
+    const gradientMagnitude = Math.sqrt(objCoeffs[0] ** 2 + objCoeffs[1] ** 2)
     if (gradientMagnitude > 1e-9) {
-        const scale = Math.min(xMax, yMax) / gradientMagnitude / 4; // Scale to be 1/4 of the smaller axis length
-        const gradientEndPoint = {
-            x: objCoeffs[0] * scale,
-            y: objCoeffs[1] * scale
-        };
-        datasets.push({
-            label: 'Вектор градиента (F)',
-            data: [{ x: 0, y: 0 }, gradientEndPoint] as Point[],
-            borderColor: 'rgba(156, 39, 176, 0.8)',
-            borderWidth: 2,
-            borderDash: [5, 5],
-            fill: false,
-            pointRadius: [0, 8],
-            pointStyle: ['circle', 'triangle'],
-            pointBackgroundColor: 'rgba(156, 39, 176, 0.8)',
-            type: 'line' as const,
-        });
+      const scale = Math.min(xMax, yMax) / gradientMagnitude / 4 // Scale to be 1/4 of the smaller axis length
+      const gradientEndPoint = {
+        x: objCoeffs[0] * scale,
+        y: objCoeffs[1] * scale,
+      }
+      datasets.push({
+        label: "Вектор градиента (F)",
+        data: [{ x: 0, y: 0 }, gradientEndPoint] as Point[],
+        borderColor: "rgba(156, 39, 176, 0.8)",
+        borderWidth: 2,
+        borderDash: [5, 5],
+        fill: false,
+        pointRadius: [0, 8],
+        pointStyle: ["circle", "triangle"],
+        pointBackgroundColor: "rgba(156, 39, 176, 0.8)",
+        type: "line" as const,
+      })
     }
 
-    setChartData({ datasets });
-  };
+    setChartData({ datasets })
+  }
 
-  const chartOptions: ChartOptions<'line' | 'scatter'> = {
+  const chartOptions: ChartOptions<"line" | "scatter"> = {
     responsive: true,
     maintainAspectRatio: true,
     aspectRatio: 1.5,
     plugins: {
-      legend: { position: 'top' },
-      title: { display: true, text: 'Графическое представление решения' },
+      legend: { position: "top" },
+      title: { display: true, text: "Графическое представление решения" },
     },
     scales: {
       x: {
-        type: 'linear',
-        position: 'bottom',
+        type: "linear",
+        position: "bottom",
         title: { display: true, text: variableNames[0] },
         min: 0,
       },
       y: {
-        type: 'linear',
+        type: "linear",
         title: { display: true, text: variableNames[1] },
         min: 0,
       },
     },
-  };
+  }
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-lg w-full flex flex-col space-y-8">
@@ -406,7 +568,7 @@ const GraphicalMethodCalculator: React.FC = () => {
                 />
                 <select
                   value={objectiveType}
-                  onChange={(e) => setObjectiveType(e.target.value as 'maximize' | 'minimize')}
+                  onChange={(e) => setObjectiveType(e.target.value as "maximize" | "minimize")}
                   className="ml-2 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="maximize">→ max</option>
@@ -435,10 +597,7 @@ const GraphicalMethodCalculator: React.FC = () => {
                   </div>
                 ))}
               </div>
-              <button
-                onClick={handleAddConstraint}
-                className="mt-2 text-sm text-blue-600 hover:text-blue-800"
-              >
+              <button onClick={handleAddConstraint} className="mt-2 text-sm text-blue-600 hover:text-blue-800">
                 + Добавить ограничение
               </button>
             </div>
@@ -454,11 +613,15 @@ const GraphicalMethodCalculator: React.FC = () => {
         {/* Right side: Chart */}
         <div className="bg-gray-50 p-6 rounded-lg border border-gray-200 flex-grow flex items-center justify-center">
           {chartData ? (
-            <Chart type="line" data={chartData as ChartData<'line' | 'scatter'>} options={{...chartOptions, maintainAspectRatio: false}} />
+            <Chart
+              type="line"
+              data={chartData as ChartData<"line" | "scatter">}
+              options={{ ...chartOptions, maintainAspectRatio: false }}
+            />
           ) : (
-             <div className="text-center text-gray-500">
-                <p>График появится здесь после расчета.</p>
-             </div>
+            <div className="text-center text-gray-500">
+              <p>График появится здесь после расчета.</p>
+            </div>
           )}
         </div>
       </div>
@@ -466,12 +629,19 @@ const GraphicalMethodCalculator: React.FC = () => {
       {/* Bottom section for results */}
       {results && (
         <div className="p-6 bg-gray-50 rounded-lg border border-gray-200">
-          <h3 className="text-xl font-semibold text-gray-800 mb-4">Шаги решения</h3>
-          <div className="text-gray-700 whitespace-pre-wrap font-mono bg-white p-4 rounded-md border">{results}</div>
+          <h3 className="text-xl font-semibold text-gray-800 mb-4">Подробное решение</h3>
+          <div
+            className="text-gray-700 whitespace-pre-wrap bg-white p-4 rounded-md border"
+            style={{
+              fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace',
+            }}
+          >
+            {results}
+          </div>
         </div>
       )}
     </div>
-  );
-};
+  )
+}
 
-export default GraphicalMethodCalculator;
+export default GraphicalMethodCalculator

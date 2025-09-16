@@ -1,267 +1,403 @@
-'use client';
+"use client"
 
-import React, { useState } from 'react';
-import { format } from 'mathjs';
+import type React from "react"
+import { useState } from "react"
 
 type Tableau = {
-  headers: string[];
-  matrix: number[][];
-  basis: number[];
-  pivot?: { row: number; col: number };
-};
+  headers: string[]
+  matrix: number[][]
+  basis: number[]
+  pivot?: { row: number; col: number }
+}
 
 interface ConstraintInput {
-  id: number;
-  value: string;
+  id: number
+  value: string
+}
+
+const gcd = (a: number, b: number): number => {
+  a = Math.abs(a)
+  b = Math.abs(b)
+  while (b !== 0) {
+    ;[a, b] = [b, a % b]
+  }
+  return a
+}
+
+const toFraction = (decimal: number, tolerance = 1e-6): string => {
+  if (Math.abs(decimal) < tolerance) return "0"
+
+  const sign = decimal < 0 ? "-" : ""
+  decimal = Math.abs(decimal)
+
+  if (Math.abs(decimal - Math.round(decimal)) < tolerance) {
+    return sign + Math.round(decimal).toString()
+  }
+
+  let denominator = 1
+  let numerator = decimal
+
+  while (Math.abs(numerator - Math.round(numerator)) > tolerance && denominator < 10000) {
+    denominator++
+    numerator = decimal * denominator
+  }
+
+  numerator = Math.round(numerator)
+  const divisor = gcd(numerator, denominator)
+  numerator /= divisor
+  denominator /= divisor
+
+  if (denominator === 1) {
+    return sign + numerator.toString()
+  }
+
+  return sign + numerator + "/" + denominator
 }
 
 const SimplexMethodCalculator: React.FC = () => {
-  const [objective, setObjective] = useState('x1 + 2*x2');
-  const [objectiveType, setObjectiveType] = useState<'maximize' | 'minimize'>('maximize');
+  const [objective, setObjective] = useState("5y + 9x")
+  const [objectiveType, setObjectiveType] = useState<"maximize" | "minimize">("maximize")
   const [constraints, setConstraints] = useState<ConstraintInput[]>([
-    { id: 1, value: '2*x1 + 3*x2 <= 12' },
-    { id: 2, value: 'x1 + 5*x2 <= 15' },
-  ]);
-  const [results, setResults] = useState<React.ReactNode | null>(null);
+    { id: 1, value: "2y + 5x <= 12" },
+    { id: 2, value: "3y + 5x <= 15" },
+  ])
+  const [results, setResults] = useState<React.ReactNode | null>(null)
 
   const handleAddConstraint = () => {
-    setConstraints([...constraints, { id: Date.now(), value: '' }]);
-  };
+    setConstraints([...constraints, { id: Date.now(), value: "" }])
+  }
 
   const handleRemoveConstraint = (id: number) => {
-    setConstraints(constraints.filter(c => c.id !== id));
-  };
+    setConstraints(constraints.filter((c) => c.id !== id))
+  }
 
   const handleConstraintChange = (id: number, value: string) => {
-    setConstraints(constraints.map(c => (c.id === id ? { ...c, value } : c)));
-  };
+    setConstraints(constraints.map((c) => (c.id === id ? { ...c, value } : c)))
+  }
 
   const calculate = () => {
     try {
-      // 1. Parse Inputs and Standardize
-      const varRegex = /[a-zA-Z][\w]*/g;
-      const allVars = new Set<string>();
-      [objective, ...constraints.map(c => c.value)].forEach(str => {
-          const matches = str.match(varRegex);
-          if (matches) {
-              const filteredMatches = matches.filter(m => !['sqrt', 'pow', 'exp', 'log', 'sin', 'cos', 'tan'].includes(m));
-              filteredMatches.forEach(v => allVars.add(v));
+      const varRegex = /[a-zA-Z][\w]*/g
+      const allVars = new Set<string>()
+      ;[objective, ...constraints.map((c) => c.value)].forEach((str) => {
+        const matches = str.match(varRegex)
+        if (matches) {
+          const filteredMatches = matches.filter((m) => !["sqrt", "pow", "exp", "log", "sin", "cos", "tan"].includes(m))
+          filteredMatches.forEach((v) => allVars.add(v))
+        }
+      })
+
+      const decisionVars = Array.from(allVars).sort()
+
+      const activeConstraints = constraints.filter((c) => {
+        const constraintText = c.value.trim()
+        if (!constraintText) return false
+        for (const varName of decisionVars) {
+          const nonNegativityPattern = new RegExp(`^\\s*${varName}\\s*>=\\s*0\\s*$`)
+          if (nonNegativityPattern.test(constraintText)) {
+            return false
           }
-      });
+        }
+        return true
+      })
 
-      const decisionVars = Array.from(allVars).sort();
-      
-      const activeConstraints = constraints.filter(c => {
-          const constraintText = c.value.trim();
-          if (!constraintText) return false;
-          // Filter out non-negativity constraints for our decision variables
-          for (const varName of decisionVars) {
-              const nonNegativityPattern = new RegExp(`^\\s*${varName}\\s*>=\\s*0\\s*$`);
-              if (nonNegativityPattern.test(constraintText)) {
-                  return false;
-              }
-          }
-          return true;
-      });
+      const slackVars = activeConstraints.map((_, i) => `s${i + 1}`)
+      const varHeaders = [...decisionVars, ...slackVars]
+      const Cj = new Array(varHeaders.length).fill(0)
 
-      const slackVars = activeConstraints.map((_, i) => `s${i + 1}`);
-      const varHeaders = [...decisionVars, ...slackVars];
-      const Cj = new Array(varHeaders.length).fill(0);
-
-      // --- New, robust parsing logic ---
       const parseTerms = (str: string): Map<string, number> => {
-          const terms = new Map<string, number>();
-          const processed = str.replace(/\s/g, '').replace(/(?=[+-])/g, ' ').trim();
-          const parts = processed.split(' ');
-          
-          for (const part of parts) {
-              const match = part.match(/([+-]?\d*\.?\d*)\*?([a-zA-Z][\w]*)/);
-              if (match) {
-                  const [, coeffStr, variable] = match;
-                  if (decisionVars.includes(variable)) {
-                      const value = coeffStr === '' || coeffStr === '+' ? 1 : coeffStr === '-' ? -1 : parseFloat(coeffStr);
-                      terms.set(variable, (terms.get(variable) || 0) + value);
-                  }
-              }
-          }
-          return terms;
-      };
+        const terms = new Map<string, number>()
+        const processed = str
+          .replace(/\s/g, "")
+          .replace(/(?=[+-])/g, " ")
+          .trim()
+        const parts = processed.split(" ")
 
-      // Parse objective function
-      const objTerms = parseTerms(objective);
+        for (const part of parts) {
+          const match = part.match(/([+-]?\d*\.?\d*)\*?([a-zA-Z][\w]*)/)
+          if (match) {
+            const [, coeffStr, variable] = match
+            if (decisionVars.includes(variable)) {
+              const value =
+                coeffStr === "" || coeffStr === "+" ? 1 : coeffStr === "-" ? -1 : Number.parseFloat(coeffStr)
+              terms.set(variable, (terms.get(variable) || 0) + value)
+            }
+          }
+        }
+        return terms
+      }
+
+      const objTerms = parseTerms(objective)
       objTerms.forEach((coeff, variable) => {
-          const index = decisionVars.indexOf(variable);
-          if (index !== -1) {
-              Cj[index] = objectiveType === 'minimize' ? -coeff : coeff;
-          }
-      });
-      
-      // Parse constraints and build matrix
-      const matrix: number[][] = [];
-      const basis: number[] = [];
+        const index = decisionVars.indexOf(variable)
+        if (index !== -1) {
+          Cj[index] = objectiveType === "minimize" ? -coeff : coeff
+        }
+      })
+
+      const matrix: number[][] = []
+      const basis: number[] = []
       activeConstraints.forEach((constraint, i) => {
-        const parts = constraint.value.split(/<=/);
-        if (parts.length !== 2 || parts[1].trim() === '') {
-            throw new Error(`Неверный формат ограничения: "${constraint.value}". Пожалуйста, используйте оператор <=.`);
+        const parts = constraint.value.split(/<=|≤/)
+        if (parts.length !== 2 || parts[1].trim() === "") {
+          throw new Error(`Неверный формат ограничения: "${constraint.value}". Пожалуйста, используйте оператор <=.`)
         }
-        const [lhs, rhsStr] = parts;
-        
-        const row = new Array(varHeaders.length + 1).fill(0); // +1 for RHS
-        row[row.length - 1] = parseFloat(rhsStr);
-        
-        const constraintTerms = parseTerms(lhs);
+        const [lhs, rhsStr] = parts
+
+        const row = new Array(varHeaders.length + 1).fill(0)
+        row[row.length - 1] = Number.parseFloat(rhsStr)
+
+        const constraintTerms = parseTerms(lhs)
         constraintTerms.forEach((coeff, variable) => {
-            const index = decisionVars.indexOf(variable);
-            if (index !== -1) {
-                row[index] = coeff;
-            }
-        });
+          const index = decisionVars.indexOf(variable)
+          if (index !== -1) {
+            row[index] = coeff
+          }
+        })
 
-        // Add slack variable
-        const slackIndex = varHeaders.indexOf(slackVars[i]);
-        row[slackIndex] = 1;
-        basis.push(slackIndex);
-        matrix.push(row);
-      });
+        const slackIndex = varHeaders.indexOf(slackVars[i])
+        row[slackIndex] = 1
+        basis.push(slackIndex)
+        matrix.push(row)
+      })
 
-      let currentTableau: Tableau = { headers: ['Basis', ...varHeaders, 'RHS'], matrix, basis };
-      const steps: Tableau[] = [];
+      let currentTableau: Tableau = { headers: ["Базис", ...varHeaders, "ПЧ"], matrix, basis }
+      const steps: { tableau: Tableau; explanation: string; Cj: number[]; Zj: number[]; CjZj: number[] }[] = []
 
-      // 2. Iterative Process
-      for (let iter = 0; iter < 20; iter++) { // Safety break
-        const Zj = new Array(varHeaders.length + 1).fill(0);
-        const Cj_Zj = new Array(varHeaders.length).fill(0);
+      for (let iter = 0; iter < 20; iter++) {
+        const Zj = new Array(varHeaders.length + 1).fill(0)
+        const Cj_Zj = new Array(varHeaders.length).fill(0)
 
-        // Calculate Zj and Cj-Zj
+        // Calculate Zj and Cj-Zj with detailed explanations
         for (let j = 0; j < varHeaders.length; j++) {
-            let sum = 0;
-            for (let i = 0; i < currentTableau.matrix.length; i++) {
-                sum += Cj[currentTableau.basis[i]] * currentTableau.matrix[i][j];
-            }
-            Zj[j] = sum;
-            Cj_Zj[j] = Cj[j] - Zj[j];
+          let sum = 0
+          for (let i = 0; i < currentTableau.matrix.length; i++) {
+            sum += Cj[currentTableau.basis[i]] * currentTableau.matrix[i][j]
+          }
+          Zj[j] = sum
+          Cj_Zj[j] = Cj[j] - Zj[j]
         }
-        Zj[Zj.length - 1] = currentTableau.basis.reduce((sum, basisIndex, i) => sum + Cj[basisIndex] * currentTableau.matrix[i][varHeaders.length], 0);
+        Zj[Zj.length - 1] = currentTableau.basis.reduce(
+          (sum, basisIndex, i) => sum + Cj[basisIndex] * currentTableau.matrix[i][varHeaders.length],
+          0,
+        )
 
-        const fullMatrix = currentTableau.matrix.map(row => [...row]);
-        fullMatrix.push(Zj);
-        fullMatrix.push([...Cj_Zj, NaN]); // Add NaN for RHS cell
-        steps.push({ ...currentTableau, matrix: fullMatrix });
-        
+        const fullMatrix = currentTableau.matrix.map((row) => [...row])
+        fullMatrix.push(Zj)
+        fullMatrix.push([...Cj_Zj, Number.NaN])
+
+        let explanation = `Итерация ${iter + 1}:\n\n`
+        explanation += `1. Вычисление строки Zj:\n`
+        for (let j = 0; j < varHeaders.length; j++) {
+          const calculations = currentTableau.basis
+            .map((basisIndex, i) => `${toFraction(Cj[basisIndex])} × ${toFraction(currentTableau.matrix[i][j])}`)
+            .join(" + ")
+          explanation += `   Z${j + 1} = ${calculations} = ${toFraction(Zj[j])}\n`
+        }
+
+        explanation += `\n2. Вычисление строки Cj - Zj:\n`
+        for (let j = 0; j < varHeaders.length; j++) {
+          explanation += `   C${j + 1} - Z${j + 1} = ${toFraction(Cj[j])} - ${toFraction(Zj[j])} = ${toFraction(Cj_Zj[j])}\n`
+        }
+
+        steps.push({
+          tableau: { ...currentTableau, matrix: fullMatrix },
+          explanation,
+          Cj: [...Cj],
+          Zj: [...Zj],
+          CjZj: [...Cj_Zj],
+        })
+
         // Check for optimality
-        const max_Cj_Zj = Math.max(...Cj_Zj);
-        if (max_Cj_Zj <= 0) break;
+        const max_Cj_Zj = Math.max(...Cj_Zj)
+        if (max_Cj_Zj <= 1e-9) {
+          steps[steps.length - 1].explanation +=
+            `\n3. Проверка оптимальности: Все элементы строки Cj - Zj ≤ 0, решение оптимально.`
+          break
+        }
 
         // Find pivot column
-        const pivotCol = Cj_Zj.indexOf(max_Cj_Zj);
+        const pivotCol = Cj_Zj.indexOf(max_Cj_Zj)
+        steps[steps.length - 1].explanation +=
+          `\n3. Выбор ведущего столбца: Максимальный элемент Cj - Zj = ${toFraction(max_Cj_Zj)} в столбце ${varHeaders[pivotCol]}`
 
-        // Find pivot row
-        let minRatio = Infinity;
-        let pivotRow = -1;
+        // Find pivot row using minimum ratio test
+        let minRatio = Number.POSITIVE_INFINITY
+        let pivotRow = -1
+        steps[steps.length - 1].explanation += `\n\n4. Критерий минимального отношения:\n`
+
         for (let i = 0; i < currentTableau.matrix.length; i++) {
-            const pivotColValue = currentTableau.matrix[i][pivotCol];
-            const rhsValue = currentTableau.matrix[i][varHeaders.length];
-            if (pivotColValue > 1e-9) {
-                const ratio = rhsValue / pivotColValue;
-                if (ratio < minRatio) {
-                    minRatio = ratio;
-                    pivotRow = i;
-                }
+          const pivotColValue = currentTableau.matrix[i][pivotCol]
+          const rhsValue = currentTableau.matrix[i][varHeaders.length]
+          if (pivotColValue > 1e-9) {
+            const ratio = rhsValue / pivotColValue
+            steps[steps.length - 1].explanation +=
+              `   ${varHeaders[currentTableau.basis[i]]}: ${toFraction(rhsValue)} / ${toFraction(pivotColValue)} = ${toFraction(ratio)}\n`
+            if (ratio < minRatio) {
+              minRatio = ratio
+              pivotRow = i
             }
+          }
         }
 
         if (pivotRow === -1) {
-          throw new Error("Неограниченное решение.");
+          throw new Error("Неограниченное решение.")
         }
-        
-        steps[steps.length - 1].pivot = { row: pivotRow, col: pivotCol + 1 }; // +1 to account for basis column
 
-        // Perform pivot operation
-        const newMatrix: number[][] = [];
-        const pivotElement = currentTableau.matrix[pivotRow][pivotCol];
-        const newPivotRowValues = currentTableau.matrix[pivotRow].map(val => val / pivotElement);
+        steps[steps.length - 1].explanation +=
+          `\n   Минимальное отношение: ${toFraction(minRatio)} в строке ${varHeaders[currentTableau.basis[pivotRow]]}`
+        steps[steps.length - 1].explanation +=
+          `\n   Ведущий элемент: ${toFraction(currentTableau.matrix[pivotRow][pivotCol])} на пересечении строки ${varHeaders[currentTableau.basis[pivotRow]]} и столбца ${varHeaders[pivotCol]}`
+
+        steps[steps.length - 1].tableau.pivot = { row: pivotRow, col: pivotCol + 1 }
+
+        // Perform pivot operation with detailed explanation
+        const newMatrix: number[][] = []
+        const pivotElement = currentTableau.matrix[pivotRow][pivotCol]
+        const newPivotRowValues = currentTableau.matrix[pivotRow].map((val) => val / pivotElement)
+
+        steps[steps.length - 1].explanation += `\n\n5. Преобразование симплекс-таблицы:\n`
+        steps[steps.length - 1].explanation +=
+          `   Новая ведущая строка: каждый элемент делим на ведущий элемент ${toFraction(pivotElement)}\n`
 
         for (let i = 0; i < currentTableau.matrix.length; i++) {
-            if (i === pivotRow) {
-                newMatrix.push(newPivotRowValues);
-            } else {
-                const pivotColCoeff = currentTableau.matrix[i][pivotCol];
-                const newRow = currentTableau.matrix[i].map((val, j) => val - pivotColCoeff * newPivotRowValues[j]);
-                newMatrix.push(newRow);
+          if (i === pivotRow) {
+            newMatrix.push(newPivotRowValues)
+          } else {
+            const pivotColCoeff = currentTableau.matrix[i][pivotCol]
+            const newRow = currentTableau.matrix[i].map((val, j) => val - pivotColCoeff * newPivotRowValues[j])
+            newMatrix.push(newRow)
+            if (Math.abs(pivotColCoeff) > 1e-9) {
+              steps[steps.length - 1].explanation +=
+                `   Строка ${varHeaders[currentTableau.basis[i]]}: вычитаем ${toFraction(pivotColCoeff)} × (новая ведущая строка)\n`
             }
+          }
         }
-        const newBasis = [...currentTableau.basis];
-        newBasis[pivotRow] = pivotCol;
-        currentTableau = { headers: currentTableau.headers, matrix: newMatrix, basis: newBasis };
+        const newBasis = [...currentTableau.basis]
+        newBasis[pivotRow] = pivotCol
+        currentTableau = { headers: currentTableau.headers, matrix: newMatrix, basis: newBasis }
       }
 
-      // 3. Format and Display Results
-      const finalZj = steps[steps.length-1].matrix[steps[steps.length-1].matrix.length-2][varHeaders.length];
-      const optimalValue = objectiveType === 'minimize' ? -finalZj : finalZj;
-      const solution = `Оптимальное решение найдено.\n${objectiveType === 'minimize' ? 'Минимальное' : 'Максимальное'} значение F = ${format(optimalValue, {notation: 'fixed', precision: 4})}\n`;
-      const variables = varHeaders.map((v,i) => {
-        const basisIndex = steps[steps.length-1].basis.indexOf(i);
-        if(basisIndex !== -1) {
-            return `${v} = ${format(steps[steps.length-1].matrix[basisIndex][varHeaders.length], {notation: 'fixed', precision: 4})}`
-        }
-        return `${v} = 0`;
-      }).join(', ');
-      
+      const finalStep = steps[steps.length - 1]
+      const finalZj = finalStep.Zj[varHeaders.length]
+      const optimalValue = objectiveType === "minimize" ? -finalZj : finalZj
+
+      const solutionVars = varHeaders
+        .map((v, i) => {
+          const basisIndex = finalStep.tableau.basis.indexOf(i)
+          if (basisIndex !== -1) {
+            return `${v} = ${toFraction(finalStep.tableau.matrix[basisIndex][varHeaders.length])}`
+          }
+          return `${v} = 0`
+        })
+        .join(", ")
+
       setResults(
-        <div>
-          {steps.map((tableau, i) => (
-            <div key={i} className="mb-6">
-              <h4 className="font-semibold mb-2">Итерация {i + 1}</h4>
-              <table className="table-auto border-collapse border border-gray-400 w-full text-center">
-                <thead>
-                  <tr>
-                    {tableau.headers.map(h => <th key={h} className="border border-gray-300 p-2 bg-gray-100">{h}</th>)}
-                    <th className="border border-gray-300 p-2 bg-gray-100">Cj</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tableau.matrix.slice(0, tableau.matrix.length - 2).map((row, r_idx) => (
-                    <tr key={r_idx}>
-                      <td className="border border-gray-300 p-2 font-semibold bg-gray-50">{varHeaders[tableau.basis[r_idx]]}</td>
-                      {row.map((cell, c_idx) => (
-                        <td key={c_idx} className={`border border-gray-300 p-2 ${tableau.pivot?.row === r_idx && tableau.pivot?.col === c_idx ? 'bg-yellow-200' : ''}`}>
-                          {format(cell, {notation: 'fixed', precision: 2})}
+        <div className="space-y-6">
+          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
+            <h4 className="font-bold text-blue-800 mb-2">Постановка задачи:</h4>
+            <p className="text-blue-700">
+              <strong>Целевая функция:</strong> F = {objective} → {objectiveType === "maximize" ? "max" : "min"}
+            </p>
+            <p className="text-blue-700">
+              <strong>Ограничения:</strong>
+            </p>
+            <ul className="list-disc list-inside text-blue-700 ml-4">
+              {activeConstraints.map((constraint, i) => (
+                <li key={i}>{constraint.value}</li>
+              ))}
+              {decisionVars.map((v) => (
+                <li key={v}>{v} ≥ 0</li>
+              ))}
+            </ul>
+          </div>
+
+          {steps.map((step, i) => (
+            <div key={i} className="mb-8 border border-gray-300 rounded-lg p-4">
+              <div className="mb-4">
+                <div className="whitespace-pre-line text-sm text-gray-700 bg-gray-50 p-3 rounded">
+                  {step.explanation}
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="table-auto border-collapse border border-gray-400 w-full text-center text-sm">
+                  <thead>
+                    <tr>
+                      {step.tableau.headers.map((h) => (
+                        <th key={h} className="border border-gray-300 p-2 bg-gray-100 font-semibold">
+                          {h}
+                        </th>
+                      ))}
+                      <th className="border border-gray-300 p-2 bg-gray-100 font-semibold">Cj</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {step.tableau.matrix.slice(0, step.tableau.matrix.length - 2).map((row, r_idx) => (
+                      <tr key={r_idx}>
+                        <td className="border border-gray-300 p-2 font-semibold bg-gray-50">
+                          {varHeaders[step.tableau.basis[r_idx]]}
+                        </td>
+                        {row.map((cell, c_idx) => (
+                          <td
+                            key={c_idx}
+                            className={`border border-gray-300 p-2 ${step.tableau.pivot?.row === r_idx && step.tableau.pivot?.col === c_idx ? "bg-yellow-200 font-bold" : ""}`}
+                          >
+                            {toFraction(cell)}
+                          </td>
+                        ))}
+                        <td className="border border-gray-300 p-2 bg-gray-100">
+                          {toFraction(step.Cj[step.tableau.basis[r_idx]])}
+                        </td>
+                      </tr>
+                    ))}
+                    <tr className="bg-blue-50">
+                      <td className="border border-gray-300 p-2 font-semibold">Zj</td>
+                      {step.Zj.slice(0, -1).map((cell, c_idx) => (
+                        <td key={c_idx} className="border border-gray-300 p-2 font-semibold">
+                          {toFraction(cell)}
                         </td>
                       ))}
-                      <td className="border border-gray-300 p-2 bg-gray-100">{Cj[tableau.basis[r_idx]]}</td>
+                      <td className="border border-gray-300 p-2 font-semibold">
+                        {toFraction(step.Zj[step.Zj.length - 1])}
+                      </td>
+                      <td className="border border-gray-300 p-2 bg-gray-100"></td>
                     </tr>
-                  ))}
-                  <tr>
-                    <td className="border border-gray-300 p-2 font-semibold bg-gray-50">Zj</td>
-                    {tableau.matrix[tableau.matrix.length-2].map((cell, c_idx) => (
-                      <td key={c_idx} className="border border-gray-300 p-2 font-semibold">{format(cell, {notation: 'fixed', precision: 2})}</td>
-                    ))}
-                    <td className="border border-gray-300 p-2 bg-gray-100"></td>
-                  </tr>
-                   <tr>
-                    <td className="border border-gray-300 p-2 font-semibold bg-gray-50">Cj - Zj</td>
-                    {tableau.matrix[tableau.matrix.length-1].map((cell, c_idx) => (
-                      <td key={c_idx} className="border border-gray-300 p-2 font-semibold">{isNaN(cell) ? '' : format(cell, {notation: 'fixed', precision: 2})}</td>
-                    ))}
-                    <td className="border border-gray-300 p-2 bg-gray-100"></td>
-                  </tr>
-                </tbody>
-              </table>
+                    <tr className="bg-green-50">
+                      <td className="border border-gray-300 p-2 font-semibold">Cj - Zj</td>
+                      {step.CjZj.map((cell, c_idx) => (
+                        <td key={c_idx} className="border border-gray-300 p-2 font-semibold">
+                          {toFraction(cell)}
+                        </td>
+                      ))}
+                      <td className="border border-gray-300 p-2"></td>
+                      <td className="border border-gray-300 p-2 bg-gray-100"></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           ))}
-          <div className="mt-4 p-4 bg-green-100 border border-green-300 rounded-md">
-            <h4 className="font-bold text-green-800">Результат</h4>
-            <p className="text-green-700 whitespace-pre-wrap">{solution}{variables}</p>
+
+          <div className="mt-6 p-4 bg-green-100 border border-green-300 rounded-md">
+            <h4 className="font-bold text-green-800 mb-2">Оптимальное решение:</h4>
+            <p className="text-green-700">
+              <strong>{objectiveType === "minimize" ? "Минимальное" : "Максимальное"} значение:</strong> F ={" "}
+              {toFraction(optimalValue)}
+            </p>
+            <p className="text-green-700">
+              <strong>Значения переменных:</strong> {solutionVars}
+            </p>
           </div>
-        </div>
-      );
+        </div>,
+      )
     } catch (e) {
-      setResults(<p className="text-red-500">{(e as Error).message}</p>);
+      setResults(<p className="text-red-500">{(e as Error).message}</p>)
     }
-  };
+  }
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-4xl">
+    <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-6xl">
       <h2 className="text-2xl font-bold mb-4 text-gray-800">Симплекс-метод</h2>
       <div className="space-y-4">
         <div>
@@ -276,19 +412,19 @@ const SimplexMethodCalculator: React.FC = () => {
               placeholder="например: x1 + 2*x2"
             />
             <select
-                value={objectiveType}
-                onChange={(e) => setObjectiveType(e.target.value as 'maximize' | 'minimize')}
-                className="ml-2 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="maximize">→ max</option>
-                <option value="minimize">→ min</option>
-              </select>
+              value={objectiveType}
+              onChange={(e) => setObjectiveType(e.target.value as "maximize" | "minimize")}
+              className="ml-2 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="maximize">→ max</option>
+              <option value="minimize">→ min</option>
+            </select>
           </div>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700">Ограничения (в форме ≤)</label>
           <p className="text-xs text-gray-500 mt-1">
-            Примечание: Условия неотрицательности (например, x &ge; 0) вводить не нужно, они учитываются автоматически.
+            Примечание: Условия неотрицательности (например, x ≥ 0) вводить не нужно, они учитываются автоматически.
           </p>
           <div className="space-y-2 mt-1">
             {constraints.map((constraint) => (
@@ -304,15 +440,12 @@ const SimplexMethodCalculator: React.FC = () => {
                   onClick={() => handleRemoveConstraint(constraint.id)}
                   className="ml-2 p-2 text-red-500 hover:text-red-700"
                 >
-                  &times;
+                  ×
                 </button>
               </div>
             ))}
           </div>
-          <button
-            onClick={handleAddConstraint}
-            className="mt-2 text-sm text-blue-600 hover:text-blue-800"
-          >
+          <button onClick={handleAddConstraint} className="mt-2 text-sm text-blue-600 hover:text-blue-800">
             + Добавить ограничение
           </button>
         </div>
@@ -325,12 +458,12 @@ const SimplexMethodCalculator: React.FC = () => {
       </div>
       {results && (
         <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-800">Результаты</h3>
-          <div className="mt-2 text-gray-700">{results}</div>
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">Пошаговое решение симплекс-методом</h3>
+          <div className="text-gray-700">{results}</div>
         </div>
       )}
     </div>
-  );
-};
+  )
+}
 
-export default SimplexMethodCalculator;
+export default SimplexMethodCalculator
