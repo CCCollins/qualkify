@@ -39,50 +39,81 @@ const SimplexMethodCalculator: React.FC = () => {
   const calculate = () => {
     try {
       // 1. Parse Inputs and Standardize
+      const varRegex = /[a-zA-Z][\w]*/g;
       const allVars = new Set<string>();
       [objective, ...constraints.map(c => c.value)].forEach(str => {
-        const matches = str.match(/x\d+/g);
-        if (matches) {
-          matches.forEach(v => allVars.add(v));
-        }
+          const matches = str.match(varRegex);
+          if (matches) {
+              const filteredMatches = matches.filter(m => !['sqrt', 'pow', 'exp', 'log', 'sin', 'cos', 'tan'].includes(m));
+              filteredMatches.forEach(v => allVars.add(v));
+          }
       });
 
-      const decisionVars = Array.from(allVars).sort((a, b) => parseInt(a.slice(1)) - parseInt(b.slice(1)));
-      const slackVars = constraints.map((_, i) => `s${i + 1}`);
+      const decisionVars = Array.from(allVars).sort();
+      
+      const activeConstraints = constraints.filter(c => {
+          const constraintText = c.value.trim();
+          if (!constraintText) return false;
+          // Filter out non-negativity constraints for our decision variables
+          for (const varName of decisionVars) {
+              const nonNegativityPattern = new RegExp(`^\\s*${varName}\\s*>=\\s*0\\s*$`);
+              if (nonNegativityPattern.test(constraintText)) {
+                  return false;
+              }
+          }
+          return true;
+      });
+
+      const slackVars = activeConstraints.map((_, i) => `s${i + 1}`);
       const varHeaders = [...decisionVars, ...slackVars];
       const Cj = new Array(varHeaders.length).fill(0);
 
-      // Parse objective function
-      const objParts = objective.replace(/\s/g, '').split(/(?=[+-])/);
-      objParts.forEach(part => {
-        const match = part.match(/([+-]?\d*\.?\d*)\*?(x\d+)/);
-        if (match) {
-          const [, coeff, variable] = match;
-          const value = coeff === '' || coeff === '+' ? 1 : coeff === '-' ? -1 : parseFloat(coeff);
-          const index = varHeaders.indexOf(variable);
-          if (index !== -1) {
-            // If minimizing, negate the coefficients to convert to maximization
-            Cj[index] = objectiveType === 'minimize' ? -value : value;
+      // --- New, robust parsing logic ---
+      const parseTerms = (str: string): Map<string, number> => {
+          const terms = new Map<string, number>();
+          const processed = str.replace(/\s/g, '').replace(/(?=[+-])/g, ' ').trim();
+          const parts = processed.split(' ');
+          
+          for (const part of parts) {
+              const match = part.match(/([+-]?\d*\.?\d*)\*?([a-zA-Z][\w]*)/);
+              if (match) {
+                  const [, coeffStr, variable] = match;
+                  if (decisionVars.includes(variable)) {
+                      const value = coeffStr === '' || coeffStr === '+' ? 1 : coeffStr === '-' ? -1 : parseFloat(coeffStr);
+                      terms.set(variable, (terms.get(variable) || 0) + value);
+                  }
+              }
           }
-        }
+          return terms;
+      };
+
+      // Parse objective function
+      const objTerms = parseTerms(objective);
+      objTerms.forEach((coeff, variable) => {
+          const index = decisionVars.indexOf(variable);
+          if (index !== -1) {
+              Cj[index] = objectiveType === 'minimize' ? -coeff : coeff;
+          }
       });
       
       // Parse constraints and build matrix
       const matrix: number[][] = [];
       const basis: number[] = [];
-      constraints.forEach((constraint, i) => {
+      activeConstraints.forEach((constraint, i) => {
+        const parts = constraint.value.split(/<=/);
+        if (parts.length !== 2 || parts[1].trim() === '') {
+            throw new Error(`Неверный формат ограничения: "${constraint.value}". Пожалуйста, используйте оператор <=.`);
+        }
+        const [lhs, rhsStr] = parts;
+        
         const row = new Array(varHeaders.length + 1).fill(0); // +1 for RHS
-        const [lhs, rhsStr] = constraint.value.split(/<=/);
         row[row.length - 1] = parseFloat(rhsStr);
         
-        const lhsParts = lhs.replace(/\s/g, '').split(/(?=[+-])/);
-        lhsParts.forEach(part => {
-            const match = part.match(/([+-]?\d*\.?\d*)\*?(x\d+)/);
-            if (match) {
-                const [, coeff, variable] = match;
-                const value = coeff === '' || coeff === '+' ? 1 : coeff === '-' ? -1 : parseFloat(coeff);
-                const index = varHeaders.indexOf(variable);
-                if (index !== -1) row[index] = value;
+        const constraintTerms = parseTerms(lhs);
+        constraintTerms.forEach((coeff, variable) => {
+            const index = decisionVars.indexOf(variable);
+            if (index !== -1) {
+                row[index] = coeff;
             }
         });
 
@@ -242,7 +273,7 @@ const SimplexMethodCalculator: React.FC = () => {
               value={objective}
               onChange={(e) => setObjective(e.target.value)}
               className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-              placeholder="e.g., x1 + 2*x2"
+              placeholder="например: x1 + 2*x2"
             />
             <select
                 value={objectiveType}
@@ -256,6 +287,9 @@ const SimplexMethodCalculator: React.FC = () => {
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700">Ограничения (в форме ≤)</label>
+          <p className="text-xs text-gray-500 mt-1">
+            Примечание: Условия неотрицательности (например, x &ge; 0) вводить не нужно, они учитываются автоматически.
+          </p>
           <div className="space-y-2 mt-1">
             {constraints.map((constraint) => (
               <div key={constraint.id} className="flex items-center">
@@ -264,7 +298,7 @@ const SimplexMethodCalculator: React.FC = () => {
                   value={constraint.value}
                   onChange={(e) => handleConstraintChange(constraint.id, e.target.value)}
                   className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="e.g., 2*x1 + 3*x2 <= 12"
+                  placeholder="например: 2*x1 + 3*x2 <= 12"
                 />
                 <button
                   onClick={() => handleRemoveConstraint(constraint.id)}

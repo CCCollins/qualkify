@@ -386,83 +386,90 @@ const GraphicalMethodCalculator: React.FC = () => {
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-lg w-full">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <div className="bg-white p-6 rounded-lg shadow-lg w-full flex flex-col space-y-8">
+      {/* Top section for inputs and chart */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
         {/* Left side: Inputs */}
-        <div className="space-y-4">
+        <div className="space-y-4 bg-gray-50 p-6 rounded-lg border border-gray-200 flex flex-col">
           <h2 className="text-2xl font-bold mb-4 text-gray-800">Параметры задачи</h2>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Целевая функция</label>
-            <div className="flex items-center mt-1">
-              <span className="text-gray-500 mr-2">F =</span>
-              <input
-                type="text"
-                value={objective}
-                onChange={(e) => setObjective(e.target.value)}
-                className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                placeholder="e.g., 2*x1 + 3*x2"
-              />
-              <select
-                value={objectiveType}
-                onChange={(e) => setObjectiveType(e.target.value as 'maximize' | 'minimize')}
-                className="ml-2 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+          <div className="flex-grow space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Целевая функция</label>
+              <div className="flex items-center mt-1">
+                <span className="text-gray-500 mr-2">F =</span>
+                <input
+                  type="text"
+                  value={objective}
+                  onChange={(e) => setObjective(e.target.value)}
+                  className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="например: 2*x1 + 3*x2"
+                />
+                <select
+                  value={objectiveType}
+                  onChange={(e) => setObjectiveType(e.target.value as 'maximize' | 'minimize')}
+                  className="ml-2 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="maximize">→ max</option>
+                  <option value="minimize">→ min</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Ограничения</label>
+              <div className="space-y-2 mt-1">
+                {constraints.map((constraint) => (
+                  <div key={constraint.id} className="flex items-center">
+                    <input
+                      type="text"
+                      value={constraint.value}
+                      onChange={(e) => handleConstraintChange(constraint.id, e.target.value)}
+                      className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="например: x1 + x2 <= 8"
+                    />
+                    <button
+                      onClick={() => handleRemoveConstraint(constraint.id)}
+                      className="ml-2 p-2 text-red-500 hover:text-red-700"
+                    >
+                      &times;
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={handleAddConstraint}
+                className="mt-2 text-sm text-blue-600 hover:text-blue-800"
               >
-                <option value="maximize">→ max</option>
-                <option value="minimize">→ min</option>
-              </select>
+                + Добавить ограничение
+              </button>
             </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Ограничения</label>
-            <div className="space-y-2 mt-1">
-              {constraints.map((constraint) => (
-                <div key={constraint.id} className="flex items-center">
-                  <input
-                    type="text"
-                    value={constraint.value}
-                    onChange={(e) => handleConstraintChange(constraint.id, e.target.value)}
-                    className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="e.g., x1 + x2 <= 8"
-                  />
-                  <button
-                    onClick={() => handleRemoveConstraint(constraint.id)}
-                    className="ml-2 p-2 text-red-500 hover:text-red-700"
-                  >
-                    &times;
-                  </button>
-                </div>
-              ))}
-            </div>
-            <button
-              onClick={handleAddConstraint}
-              className="mt-2 text-sm text-blue-600 hover:text-blue-800"
-            >
-              + Добавить ограничение
-            </button>
           </div>
           <button
             onClick={calculate}
-            className="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 mt-auto"
           >
             Рассчитать
           </button>
         </div>
 
-        {/* Right side: Results and Chart */}
-        <div className="space-y-6">
-          {results && (
-            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 h-fit">
-              <h3 className="text-lg font-semibold text-gray-800">Результаты</h3>
-              <p className="mt-2 text-gray-700 whitespace-pre-wrap">{results}</p>
-            </div>
-          )}
-           {chartData && (
-            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <Chart type="line" data={chartData as ChartData<'line' | 'scatter'>} options={chartOptions as ChartOptions<'line' | 'scatter'>} />
-            </div>
+        {/* Right side: Chart */}
+        <div className="bg-gray-50 p-6 rounded-lg border border-gray-200 flex-grow flex items-center justify-center">
+          {chartData ? (
+            <Chart type="line" data={chartData as ChartData<'line' | 'scatter'>} options={{...chartOptions, maintainAspectRatio: false}} />
+          ) : (
+             <div className="text-center text-gray-500">
+                <p>График появится здесь после расчета.</p>
+             </div>
           )}
         </div>
       </div>
+
+      {/* Bottom section for results */}
+      {results && (
+        <div className="p-6 bg-gray-50 rounded-lg border border-gray-200">
+          <h3 className="text-xl font-semibold text-gray-800 mb-4">Шаги решения</h3>
+          <div className="text-gray-700 whitespace-pre-wrap font-mono bg-white p-4 rounded-md border">{results}</div>
+        </div>
+      )}
     </div>
   );
 };
