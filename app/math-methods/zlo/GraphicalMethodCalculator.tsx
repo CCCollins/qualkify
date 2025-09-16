@@ -42,9 +42,9 @@ type ParsedConstraint = {
 type Point = { x: number; y: number };
 
 const parseExpression = (expr: string, var1: string, var2: string): number[] => {
-  let processedExpr = expr.replace(/(\d)([a-zA-Z])/g, '$1*$2');
+  const processedExpr = expr.replace(/(\d)([a-zA-Z])/g, '$1*$2');
   const termRegex = /([+-])?\s*(\d+\.?\d*)?\s*\*?\s*([a-zA-Z][a-zA-Z0-9_]*)/g;
-  let coeffs: { [key: string]: number } = { [var1]: 0, [var2]: 0 };
+  const coeffs: { [key: string]: number } = { [var1]: 0, [var2]: 0 };
   const signedExpr = (processedExpr.startsWith('+') || processedExpr.startsWith('-')) ? processedExpr : `+${processedExpr}`;
   let match;
   while ((match = termRegex.exec(signedExpr)) !== null) {
