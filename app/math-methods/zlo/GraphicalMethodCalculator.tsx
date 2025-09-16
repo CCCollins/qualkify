@@ -39,62 +39,73 @@ type ParsedConstraint = {
   rhs: number;
 };
 
-type Point = { x1: number; x2: number };
+type Point = { x: number; y: number };
 
-// Parses a string like "2*x1 + 3*x2 <= 12" into a structured object.
-const parseConstraint = (str: string): ParsedConstraint | null => {
-  const cleanedStr = str.replace(/\s/g, '');
-  const match = cleanedStr.match(/([+-]?\d*\.?\d*\*?x1)?([+-]?\d*\.?\d*\*?x2)?(<=|>=|=)([+-]?\d+\.?\d*)/);
-  if (!match) return null;
-
-  const [, x1Part, x2Part, operator, rhs] = match;
-
-  const getCoeff = (part: string | undefined, variable: string): number => {
-    if (!part) return 0;
-    if (part === `+${variable}` || part === variable) return 1;
-    if (part === `-${variable}`) return -1;
-    return parseFloat(part.replace(`*${variable}`, ''));
-  };
-
-  return {
-    coeffs: [getCoeff(x1Part, 'x1'), getCoeff(x2Part, 'x2')],
-    operator: operator as '<=' | '>=' | '=',
-    rhs: parseFloat(rhs),
-  };
+const parseExpression = (expr: string, var1: string, var2: string): number[] => {
+  let processedExpr = expr.replace(/(\d)([a-zA-Z])/g, '$1*$2');
+  const termRegex = /([+-])?\s*(\d+\.?\d*)?\s*\*?\s*([a-zA-Z][a-zA-Z0-9_]*)/g;
+  let coeffs: { [key: string]: number } = { [var1]: 0, [var2]: 0 };
+  const signedExpr = (processedExpr.startsWith('+') || processedExpr.startsWith('-')) ? processedExpr : `+${processedExpr}`;
+  let match;
+  while ((match = termRegex.exec(signedExpr)) !== null) {
+    const [, sign, coeffStr, variable] = match;
+    if (variable !== var1 && variable !== var2) continue;
+    let coeff = parseFloat(coeffStr || '1');
+    if (sign === '-') {
+      coeff = -coeff;
+    }
+    coeffs[variable] += coeff;
+  }
+  return [coeffs[var1], coeffs[var2]];
 };
 
-// Solves a system of two linear equations: a1x1 + b1x2 = c1, a2x1 + b2x2 = c2
+const parseConstraint = (str: string, var1: string, var2: string): ParsedConstraint | null => {
+  const parts = str.split(/(<=|>=|=)/);
+  if (parts.length < 3) return null;
+  const lhs = parts[0];
+  const operator = parts[1].trim() as ParsedConstraint['operator'];
+  const rhs = parseFloat(parts[2].trim());
+  if (isNaN(rhs)) return null;
+  const coeffs = parseExpression(lhs, var1, var2);
+  return { coeffs, operator, rhs };
+};
+
 const solveLinearSystem = (c1: ParsedConstraint, c2: ParsedConstraint): Point | null => {
-    const [a1, b1] = c1.coeffs;
-    const [a2, b2] = c2.coeffs;
-    const rhs1 = c1.rhs;
-    const rhs2 = c2.rhs;
-
-    const determinant = a1 * b2 - a2 * b1;
-    if (Math.abs(determinant) < 1e-9) { // Lines are parallel or coincident
-        return null;
-    }
-
-    const x1 = (b2 * rhs1 - b1 * rhs2) / determinant;
-    const x2 = (a1 * rhs2 - a2 * rhs1) / determinant;
-
-    return { x1, x2 };
+  const [a1, b1] = c1.coeffs;
+  const [a2, b2] = c2.coeffs;
+  const rhs1 = c1.rhs;
+  const rhs2 = c2.rhs;
+  const determinant = a1 * b2 - a2 * b1;
+  if (Math.abs(determinant) < 1e-9) {
+    return null;
+  }
+  const x = (b2 * rhs1 - b1 * rhs2) / determinant;
+  const y = (a1 * rhs2 - a2 * rhs1) / determinant;
+  return { x, y };
 };
 
-// Checks if a point satisfies a given constraint.
-const isPointFeasible = (point: Point, constraint: ParsedConstraint): boolean => {
+const isPointFeasible = (point: Point, constraints: ParsedConstraint[]): boolean => {
+  const tolerance = 1e-9;
+  if (point.x < -tolerance || point.y < -tolerance) return false;
+  for (const constraint of constraints) {
     const { coeffs, operator, rhs } = constraint;
-    const val = coeffs[0] * point.x1 + coeffs[1] * point.x2;
-    const tolerance = 1e-9; // To handle floating point inaccuracies
-
+    const val = coeffs[0] * point.x + coeffs[1] * point.y;
+    let isFeasible = false;
     switch (operator) {
-        case '<=': return val <= rhs + tolerance;
-        case '>=': return val >= rhs - tolerance;
-        case '=': return Math.abs(val - rhs) < tolerance;
-        default: return false;
+      case '<=':
+        isFeasible = val <= rhs + tolerance;
+        break;
+      case '>=':
+        isFeasible = val >= rhs - tolerance;
+        break;
+      case '=':
+        isFeasible = Math.abs(val - rhs) < tolerance;
+        break;
     }
+    if (!isFeasible) return false;
+  }
+  return true;
 };
-
 
 interface ConstraintInput {
   id: number;
@@ -102,83 +113,102 @@ interface ConstraintInput {
 }
 
 const GraphicalMethodCalculator: React.FC = () => {
-  const [objective, setObjective] = useState('x1 + 2*x2');
+  const [objective, setObjective] = useState('6*x + 5*y');
   const [objectiveType, setObjectiveType] = useState<'maximize' | 'minimize'>('maximize');
   const [constraints, setConstraints] = useState<ConstraintInput[]>([
-    { id: 1, value: '2*x1 + 3*x2 <= 12' },
-    { id: 2, value: 'x1 + x2 <= 5' },
-    { id: 3, value: 'x1 >= 0'},
-    { id: 4, value: 'x2 >= 0'}
+    { id: 1, value: '3*x + 2*y <= 10' },
+    { id: 2, value: '4*x + 2*y <= 8' },
+    { id: 3, value: 'x >= 0' },
+    { id: 4, value: 'y >= 0' },
   ]);
   const [results, setResults] = useState<string | null>(null);
   const [chartData, setChartData] = useState<ChartData<'line' | 'scatter'> | null>(null);
-
+  const [variableNames, setVariableNames] = useState<[string, string]>(['x', 'y']);
 
   const handleAddConstraint = () => {
     setConstraints([...constraints, { id: Date.now(), value: '' }]);
   };
 
   const handleRemoveConstraint = (id: number) => {
-    setConstraints(constraints.filter(c => c.id !== id));
+    setConstraints(constraints.filter((c) => c.id !== id));
   };
 
   const handleConstraintChange = (id: number, value: string) => {
-    setConstraints(constraints.map(c => (c.id === id ? { ...c, value } : c)));
+    setConstraints(constraints.map((c) => (c.id === id ? { ...c, value } : c)));
   };
 
   const calculate = () => {
     setChartData(null);
+
+    const allInputs = [objective, ...constraints.map((c) => c.value)];
+    const detectedVars = new Set<string>();
+    const varRegex = /[a-zA-Z_][a-zA-Z0-9_]*/g;
+    allInputs.forEach((input) => {
+      const lhs = input.split(/(<=|>=|=)/)[0];
+      const matches = lhs.match(varRegex);
+      if (matches) {
+        matches.forEach((v) => detectedVars.add(v));
+      }
+    });
+
+    const sortedVars = Array.from(detectedVars).sort();
+    if (sortedVars.length > 2) {
+      setResults(`Ошибка: Графический метод поддерживает только две переменные. Найдено: ${sortedVars.join(', ')}`);
+      return;
+    }
+    if (sortedVars.length < 2) {
+      setResults(`Ошибка: Графический метод требует две переменные. Найдено: ${sortedVars.join(', ')}`);
+      return;
+    }
+    const [var1, var2] = sortedVars as [string, string];
+    setVariableNames([var1, var2]);
+
     const parsedConstraints = constraints
-      .map(c => parseConstraint(c.value))
+      .map((c) => parseConstraint(c.value, var1, var2))
       .filter((c): c is ParsedConstraint => c !== null);
 
     if (parsedConstraints.length < 2) {
-      setResults("Ошибка: необходимо как минимум два ограничения.");
+      setResults('Ошибка: необходимо как минимум два ограничения.');
       return;
     }
 
     const intersectionPoints: Point[] = [];
-    for (let i = 0; i < parsedConstraints.length; i++) {
-      for (let j = i + 1; j < parsedConstraints.length; j++) {
-        const point = solveLinearSystem(parsedConstraints[i], parsedConstraints[j]);
+    const extendedConstraints = [
+        ...parsedConstraints,
+        { coeffs: [1, 0], operator: '>=' as const, rhs: 0 }, // x >= 0
+        { coeffs: [0, 1], operator: '>=' as const, rhs: 0 }, // y >= 0
+    ];
+
+    for (let i = 0; i < extendedConstraints.length; i++) {
+      for (let j = i + 1; j < extendedConstraints.length; j++) {
+        const point = solveLinearSystem(extendedConstraints[i], extendedConstraints[j]);
         if (point) {
           intersectionPoints.push(point);
         }
       }
     }
-
-    const feasiblePoints = intersectionPoints.filter(p =>
-      p.x1 >= -1e-9 && p.x2 >= -1e-9 && parsedConstraints.every(c => isPointFeasible(p, c))
-    );
+    
+    const feasiblePoints = intersectionPoints.filter(p => isPointFeasible(p, parsedConstraints));
 
     const uniqueFeasiblePoints = feasiblePoints.reduce<Point[]>((acc, point) => {
-      if (!acc.some(p => Math.abs(p.x1 - point.x1) < 1e-9 && Math.abs(p.x2 - point.x2) < 1e-9)) {
+      if (!acc.some((p) => Math.abs(p.x - point.x) < 1e-9 && Math.abs(p.y - point.y) < 1e-9)) {
         acc.push(point);
       }
       return acc;
     }, []);
 
-    let optimalPoint: Point | null = null;
-    let optimalValue = objectiveType === 'maximize' ? -Infinity : Infinity;
-    let steps = 'Шаги решения:\n\n';
-
-    steps += '1. Найдены угловые точки допустимой области:\n';
-    uniqueFeasiblePoints.forEach(p => {
-      steps += `   - (${format(p.x1, { notation: 'fixed', precision: 2 })}, ${format(p.x2, { notation: 'fixed', precision: 2 })})\n`;
-    });
-
     if (uniqueFeasiblePoints.length === 0) {
-      setResults("Не удалось найти допустимых угловых точек. Область может быть неограниченной или не существует.");
+      setResults('Не удалось найти допустимых угловых точек. Область может быть неограниченной или не существует.');
       return;
     }
-    
-    uniqueFeasiblePoints.sort((a, b) => Math.atan2(a.x2, a.x1) - Math.atan2(b.x2, b.x1));
 
-    steps += '\n2. Вычисление значения целевой функции в каждой точке:\n';
-    uniqueFeasiblePoints.forEach(point => {
+    let optimalPoint: Point | null = null;
+    let optimalValue = objectiveType === 'maximize' ? -Infinity : Infinity;
+
+    uniqueFeasiblePoints.forEach((point) => {
       try {
-        const value = evaluate(objective, { x1: point.x1, x2: point.x2 });
-        steps += `   - F(${format(point.x1, { notation: 'fixed', precision: 2 })}, ${format(point.x2, { notation: 'fixed', precision: 2 })}) = ${format(value, { notation: 'fixed', precision: 2 })}\n`;
+        const scope = { [var1]: point.x, [var2]: point.y };
+        const value = evaluate(objective, scope);
         if (objectiveType === 'maximize' && value > optimalValue) {
           optimalValue = value;
           optimalPoint = point;
@@ -192,32 +222,72 @@ const GraphicalMethodCalculator: React.FC = () => {
       }
     });
 
-    if (optimalPoint !== null) {
-      const point = optimalPoint as Point;
-      steps += `\n3. Оптимальное решение:\n`;
-      steps += `   - ${objectiveType === 'maximize' ? 'Максимальное' : 'Минимальное'} значение F = ${format(optimalValue, { notation: 'fixed', precision: 2 })} достигается в точке (${format(point.x1, { notation: 'fixed', precision: 2 })}, ${format(point.x2, { notation: 'fixed', precision: 2 })})\n`;
+    let steps = 'Шаги решения:\n\n';
+    steps += '1. Найдены все возможные точки пересечения (включая оси):\n';
+    intersectionPoints.forEach(p => {
+      steps += `   - (${format(p.x, { notation: 'fixed', precision: 2 })}, ${format(p.y, { notation: 'fixed', precision: 2 })})\n`;
+    });
+
+    steps += '\n2. Найдены угловые точки допустимой области (прошедшие проверку):\n';
+    uniqueFeasiblePoints.forEach((p) => {
+      steps += `   - (${format(p.x, { notation: 'fixed', precision: 2 })}, ${format(p.y, { notation: 'fixed', precision: 2 })})\n`;
+    });
+    steps += '\n3. Вычисление значения целевой функции в каждой точке:\n';
+    uniqueFeasiblePoints.forEach((point) => {
+      const scope = { [var1]: point.x, [var2]: point.y };
+      const value = evaluate(objective, scope);
+      steps += `   - F(${format(point.x, { notation: 'fixed', precision: 2 })}, ${format(point.y, {
+        notation: 'fixed',
+        precision: 2,
+      })}) = ${format(value, { notation: 'fixed', precision: 2 })}\n`;
+    });
+
+    if (
+      optimalPoint &&
+      typeof (optimalPoint as Point).x === 'number' &&
+      typeof (optimalPoint as Point).y === 'number'
+    ) {
+      steps += `\n4. Оптимальное решение:\n`;
+      steps += `   - ${objectiveType === 'maximize' ? 'Максимальное' : 'Минимальное'} значение F = ${format(optimalValue, {
+        notation: 'fixed',
+        precision: 2,
+      })} достигается в точке (${format((optimalPoint as Point).x, { notation: 'fixed', precision: 2 })}, ${format((optimalPoint as Point).y, { notation: 'fixed', precision: 2 })})\n`;
     } else {
-      steps += "\nНе удалось найти оптимальное решение.";
+      steps += '\nНе удалось найти оптимальное решение.';
     }
 
     setResults(steps);
-    generateChartData(parsedConstraints, uniqueFeasiblePoints, optimalPoint);
+    generateChartData(parsedConstraints, uniqueFeasiblePoints, optimalPoint, objective, variableNames);
   };
 
-  const generateChartData = (constraints: ParsedConstraint[], feasiblePoints: Point[], optimalPoint: Point | null) => {
-    const allPoints = [...feasiblePoints, ...(optimalPoint ? [optimalPoint] : [])];
-    const xMax = allPoints.reduce((max, p) => Math.max(max, p.x1), 0) * 1.2 + 5;
-    const yMax = allPoints.reduce((max, p) => Math.max(max, p.x2), 0) * 1.2 + 5;
-  
+  const generateChartData = (
+    constraints: ParsedConstraint[],
+    feasiblePoints: Point[],
+    optimalPoint: Point | null,
+    objective: string,
+    variableNames: [string, string]
+  ) => {
+    const allPoints: Point[] = [...feasiblePoints];
+    if (optimalPoint) {
+        allPoints.push(optimalPoint);
+    }
+
+    const xMax = allPoints.length > 0
+        ? Math.max(...(allPoints as Point[]).map((p: Point) => p.x)) * 1.2 + 5
+        : 5;
+    const yMax = allPoints.length > 0
+        ? Math.max(...(allPoints as Point[]).map((p: Point) => p.y)) * 1.2 + 5
+        : 5;
+
     const datasets: ChartDataset<'line' | 'scatter'>[] = constraints.map((c, i) => {
       const [a, b] = c.coeffs;
       const rhs = c.rhs;
-      let p1, p2;
-  
-      if (Math.abs(b) > 1e-9) { // Not a vertical line
+      let p1: Point, p2: Point;
+
+      if (Math.abs(b) > 1e-9) {
         p1 = { x: 0, y: rhs / b };
         p2 = { x: xMax, y: (rhs - a * xMax) / b };
-      } else { // Vertical line
+      } else {
         p1 = { x: rhs / a, y: 0 };
         p2 = { x: rhs / a, y: yMax };
       }
@@ -232,12 +302,12 @@ const GraphicalMethodCalculator: React.FC = () => {
         type: 'line' as const,
       };
     });
-  
-    // Add feasible region polygon
+
     if (feasiblePoints.length > 1) {
+      const sortedFeasiblePoints = [...feasiblePoints].sort((a, b) => Math.atan2(a.y, a.x) - Math.atan2(b.y, b.x));
       datasets.push({
         label: 'Допустимая область',
-        data: [...feasiblePoints, feasiblePoints[0]].map(p => ({ x: p.x1, y: p.x2 })),
+        data: ([...sortedFeasiblePoints, sortedFeasiblePoints[0]]).map((p: Point) => ({ x: p.x, y: p.y })),
         borderColor: 'rgba(75, 192, 192, 1)',
         backgroundColor: 'rgba(75, 192, 192, 0.2)',
         borderWidth: 1,
@@ -246,31 +316,50 @@ const GraphicalMethodCalculator: React.FC = () => {
         type: 'line' as const,
       });
     }
-  
-    // Add corner points
+
     datasets.push({
       label: 'Угловые точки',
-      data: feasiblePoints.map(p => ({ x: p.x1, y: p.x2 })),
+      data: feasiblePoints.map((p: Point) => ({ x: p.x, y: p.y })),
       backgroundColor: 'rgba(255, 99, 132, 1)',
       pointRadius: 5,
       type: 'scatter' as const,
     });
-  
-    // Add optimal point
+
     if (optimalPoint) {
       datasets.push({
         label: 'Оптимальная точка',
-        data: [{ x: optimalPoint.x1, y: optimalPoint.x2 }],
+        data: [{ x: optimalPoint.x, y: optimalPoint.y }],
         backgroundColor: 'rgba(54, 162, 235, 1)',
         pointRadius: 7,
         pointStyle: 'rectRot',
         type: 'scatter' as const,
       });
     }
-  
-    setChartData({
-      datasets: datasets,
-    });
+
+    // Add gradient vector
+    const objCoeffs = parseExpression(objective, variableNames[0], variableNames[1]);
+    const gradientMagnitude = Math.sqrt(objCoeffs[0]**2 + objCoeffs[1]**2);
+    if (gradientMagnitude > 1e-9) {
+        const scale = Math.min(xMax, yMax) / gradientMagnitude / 4; // Scale to be 1/4 of the smaller axis length
+        const gradientEndPoint = {
+            x: objCoeffs[0] * scale,
+            y: objCoeffs[1] * scale
+        };
+        datasets.push({
+            label: 'Вектор градиента (F)',
+            data: [{ x: 0, y: 0 }, gradientEndPoint] as Point[],
+            borderColor: 'rgba(156, 39, 176, 0.8)',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            fill: false,
+            pointRadius: [0, 8],
+            pointStyle: ['circle', 'triangle'],
+            pointBackgroundColor: 'rgba(156, 39, 176, 0.8)',
+            type: 'line' as const,
+        });
+    }
+
+    setChartData({ datasets });
   };
 
   const chartOptions: ChartOptions<'line' | 'scatter'> = {
@@ -278,30 +367,19 @@ const GraphicalMethodCalculator: React.FC = () => {
     maintainAspectRatio: true,
     aspectRatio: 1.5,
     plugins: {
-      legend: {
-        position: 'top',
-      },
-      title: {
-        display: true,
-        text: 'Графическое представление решения',
-      },
+      legend: { position: 'top' },
+      title: { display: true, text: 'Графическое представление решения' },
     },
     scales: {
       x: {
         type: 'linear',
         position: 'bottom',
-        title: {
-          display: true,
-          text: 'x1',
-        },
+        title: { display: true, text: variableNames[0] },
         min: 0,
       },
       y: {
         type: 'linear',
-        title: {
-          display: true,
-          text: 'x2',
-        },
+        title: { display: true, text: variableNames[1] },
         min: 0,
       },
     },
