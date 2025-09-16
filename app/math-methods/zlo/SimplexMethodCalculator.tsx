@@ -353,7 +353,7 @@ const SimplexMethodCalculator: React.FC = () => {
               type="text"
               value={objective}
               onChange={(e) => setObjective(e.target.value)}
-              className="flex-grow min-w-0 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base"
+              className="flex-1 min-w-0 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base"
               placeholder="например: x1 + 2*x2"
             />
             <select
