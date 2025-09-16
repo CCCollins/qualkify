@@ -355,7 +355,7 @@ const GraphicalMethodCalculator: React.FC = () => {
     })
 
     steps += "Шаг 2. Проверка допустимости точек\n\n"
-    intersectionPoints.forEach((point, index) => {
+    intersectionPoints.forEach((point) => {
       steps += `Точка (${formatAsFraction(point.x)}, ${formatAsFraction(point.y)}):\n`
 
       // Check non-negativity
