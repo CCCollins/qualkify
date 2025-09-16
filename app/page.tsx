@@ -45,8 +45,8 @@ const categories = [
     name: 'Математические методы',
     path: '/math-methods',
     icon: '📈',
-    color: 'from-purple-100 to-purple-50',
-    text: 'text-purple-800',
+    color: 'from-orange-100 to-orange-50',
+    text: 'text-orange-800',
     modules: [
       { name: 'Решение задач линейной оптимизации (ЗЛО)', path: '/math-methods/zlo', emoji: '📐' },
     ],

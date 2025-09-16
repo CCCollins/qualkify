@@ -1,7 +1,30 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { evaluate, format } from 'mathjs';
+import { Line } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler,
+} from 'chart.js';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+);
 
 // --- Helper Types and Functions ---
 
@@ -83,6 +106,8 @@ const GraphicalMethodCalculator: React.FC = () => {
     { id: 4, value: 'x2 >= 0'}
   ]);
   const [results, setResults] = useState<string | null>(null);
+  const [chartData, setChartData] = useState<any>(null);
+
 
   const handleAddConstraint = () => {
     setConstraints([...constraints, { id: Date.now(), value: '' }]);
@@ -97,151 +122,261 @@ const GraphicalMethodCalculator: React.FC = () => {
   };
 
   const calculate = () => {
+    setChartData(null);
     const parsedConstraints = constraints
       .map(c => parseConstraint(c.value))
       .filter((c): c is ParsedConstraint => c !== null);
 
     if (parsedConstraints.length < 2) {
-        setResults("Ошибка: необходимо как минимум два ограничения.");
-        return;
+      setResults("Ошибка: необходимо как минимум два ограничения.");
+      return;
     }
 
-    // --- Finding Corner Points ---
     const intersectionPoints: Point[] = [];
-    // Find intersections between all pairs of constraint lines
     for (let i = 0; i < parsedConstraints.length; i++) {
-        for (let j = i + 1; j < parsedConstraints.length; j++) {
-            const point = solveLinearSystem(parsedConstraints[i], parsedConstraints[j]);
-            if (point) {
-                intersectionPoints.push(point);
-            }
+      for (let j = i + 1; j < parsedConstraints.length; j++) {
+        const point = solveLinearSystem(parsedConstraints[i], parsedConstraints[j]);
+        if (point) {
+          intersectionPoints.push(point);
         }
+      }
     }
 
-    // Filter for feasible points
-    const feasiblePoints: Point[] = intersectionPoints.filter((p: Point) => 
-        parsedConstraints.every(c => isPointFeasible(p, c))
+    const feasiblePoints = intersectionPoints.filter(p =>
+      p.x1 >= -1e-9 && p.x2 >= -1e-9 && parsedConstraints.every(c => isPointFeasible(p, c))
     );
 
-    // Remove duplicate points
-    const uniqueFeasiblePoints: Point[] = feasiblePoints.reduce<Point[]>((acc, point) => {
-        if (!acc.some(p => Math.abs(p.x1 - point.x1) < 1e-9 && Math.abs(p.x2 - point.x2) < 1e-9)) {
-            acc.push(point);
-        }
-        return acc;
+    const uniqueFeasiblePoints = feasiblePoints.reduce<Point[]>((acc, point) => {
+      if (!acc.some(p => Math.abs(p.x1 - point.x1) < 1e-9 && Math.abs(p.x2 - point.x2) < 1e-9)) {
+        acc.push(point);
+      }
+      return acc;
     }, []);
-    
-    // --- Evaluate Objective Function ---
+
     let optimalPoint: Point | null = null;
     let optimalValue = objectiveType === 'maximize' ? -Infinity : Infinity;
     let steps = 'Шаги решения:\n\n';
 
     steps += '1. Найдены угловые точки допустимой области:\n';
     uniqueFeasiblePoints.forEach(p => {
-        steps += `   - (${format(p.x1, { notation: 'fixed', precision: 2 })}, ${format(p.x2, { notation: 'fixed', precision: 2 })})\n`;
+      steps += `   - (${format(p.x1, { notation: 'fixed', precision: 2 })}, ${format(p.x2, { notation: 'fixed', precision: 2 })})\n`;
     });
-    
+
     if (uniqueFeasiblePoints.length === 0) {
-        setResults("Не удалось найти допустимых угловых точек. Область может быть неограниченной или не существует.");
-        return;
+      setResults("Не удалось найти допустимых угловых точек. Область может быть неограниченной или не существует.");
+      return;
     }
+    
+    uniqueFeasiblePoints.sort((a, b) => Math.atan2(a.x2, a.x1) - Math.atan2(b.x2, b.x1));
 
     steps += '\n2. Вычисление значения целевой функции в каждой точке:\n';
     uniqueFeasiblePoints.forEach(point => {
-        try {
-            const value = evaluate(objective, { x1: point.x1, x2: point.x2 });
-            steps += `   - F(${format(point.x1, { notation: 'fixed', precision: 2 })}, ${format(point.x2, { notation: 'fixed', precision: 2 })}) = ${format(value, { notation: 'fixed', precision: 2 })}\n`;
-
-            if (objectiveType === 'maximize' && value > optimalValue) {
-                optimalValue = value;
-                optimalPoint = point;
-            } else if (objectiveType === 'minimize' && value < optimalValue) {
-                optimalValue = value;
-                optimalPoint = point;
-            }
-        } catch (error) {
-            setResults(`Ошибка при вычислении целевой функции: ${error instanceof Error ? error.message : String(error)}`);
-            return;
+      try {
+        const value = evaluate(objective, { x1: point.x1, x2: point.x2 });
+        steps += `   - F(${format(point.x1, { notation: 'fixed', precision: 2 })}, ${format(point.x2, { notation: 'fixed', precision: 2 })}) = ${format(value, { notation: 'fixed', precision: 2 })}\n`;
+        if (objectiveType === 'maximize' && value > optimalValue) {
+          optimalValue = value;
+          optimalPoint = point;
+        } else if (objectiveType === 'minimize' && value < optimalValue) {
+          optimalValue = value;
+          optimalPoint = point;
         }
+      } catch (error) {
+        setResults(`Ошибка при вычислении целевой функции: ${error instanceof Error ? error.message : String(error)}`);
+        return;
+      }
     });
 
     if (optimalPoint !== null) {
-        const point = optimalPoint as Point;
-        steps += `\n3. Оптимальное решение:\n`;
-        steps += `   - ${objectiveType === 'maximize' ? 'Максимальное' : 'Минимальное'} значение F = ${format(optimalValue, { notation: 'fixed', precision: 2 })} достигается в точке (${format(point.x1, { notation: 'fixed', precision: 2 })}, ${format(point.x2, { notation: 'fixed', precision: 2 })})\n`;
+      const point = optimalPoint as Point;
+      steps += `\n3. Оптимальное решение:\n`;
+      steps += `   - ${objectiveType === 'maximize' ? 'Максимальное' : 'Минимальное'} значение F = ${format(optimalValue, { notation: 'fixed', precision: 2 })} достигается в точке (${format(point.x1, { notation: 'fixed', precision: 2 })}, ${format(point.x2, { notation: 'fixed', precision: 2 })})\n`;
     } else {
-        steps += "\nНе удалось найти оптимальное решение.";
+      steps += "\nНе удалось найти оптимальное решение.";
     }
 
     setResults(steps);
+    generateChartData(parsedConstraints, uniqueFeasiblePoints, optimalPoint);
+  };
+
+  const generateChartData = (constraints: ParsedConstraint[], feasiblePoints: Point[], optimalPoint: Point | null) => {
+    const allPoints = [...feasiblePoints, ...(optimalPoint ? [optimalPoint] : [])];
+    const xMax = allPoints.reduce((max, p) => Math.max(max, p.x1), 0) * 1.2 + 5;
+    const yMax = allPoints.reduce((max, p) => Math.max(max, p.x2), 0) * 1.2 + 5;
+  
+    const datasets = constraints.map((c, i) => {
+      const [a, b] = c.coeffs;
+      const rhs = c.rhs;
+      let p1, p2;
+  
+      if (Math.abs(b) > 1e-9) { // Not a vertical line
+        p1 = { x: 0, y: rhs / b };
+        p2 = { x: xMax, y: (rhs - a * xMax) / b };
+      } else { // Vertical line
+        p1 = { x: rhs / a, y: 0 };
+        p2 = { x: rhs / a, y: yMax };
+      }
+      return {
+        label: `Ограничение ${i + 1}`,
+        data: [p1, p2],
+        borderColor: `hsl(${i * 60}, 70%, 50%)`,
+        borderWidth: 2,
+        fill: false,
+        tension: 0,
+        pointRadius: 0,
+        type: 'line',
+      };
+    });
+  
+    // Add feasible region polygon
+    if (feasiblePoints.length > 1) {
+      datasets.push({
+        label: 'Допустимая область',
+        data: [...feasiblePoints, feasiblePoints[0]].map(p => ({ x: p.x1, y: p.x2 })),
+        borderColor: 'rgba(75, 192, 192, 1)',
+        borderWidth: 1,
+        fill: true,
+        pointRadius: 0,
+        type: 'line',
+      } as any);
+    }
+  
+    // Add corner points
+    datasets.push({
+      label: 'Угловые точки',
+      data: feasiblePoints.map(p => ({ x: p.x1, y: p.x2 })),
+      pointRadius: 5,
+      type: 'scatter',
+    } as any);
+  
+    // Add optimal point
+    if (optimalPoint) {
+      datasets.push({
+        label: 'Оптимальная точка',
+        data: [{ x: optimalPoint.x1, y: optimalPoint.x2 }],
+        pointRadius: 7,
+        pointStyle: 'rectRot',
+        type: 'scatter',
+      } as any);
+    }
+  
+    setChartData({
+      datasets: datasets,
+    });
+  };
+
+  const chartOptions: any = {
+    responsive: true,
+    maintainAspectRatio: true,
+    aspectRatio: 1.5,
+    plugins: {
+      legend: {
+        position: 'top',
+      },
+      title: {
+        display: true,
+        text: 'Графическое представление решения',
+      },
+    },
+    scales: {
+      x: {
+        type: 'linear',
+        position: 'bottom',
+        title: {
+          display: true,
+          text: 'x1',
+        },
+        min: 0,
+      },
+      y: {
+        type: 'linear',
+        title: {
+          display: true,
+          text: 'x2',
+        },
+        min: 0,
+      },
+    },
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl">
-      <h2 className="text-2xl font-bold mb-4 text-gray-800">Графический метод</h2>
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Целевая функция</label>
-          <div className="flex items-center mt-1">
-            <span className="text-gray-500 mr-2">F =</span>
-            <input
-              type="text"
-              value={objective}
-              onChange={(e) => setObjective(e.target.value)}
-              className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-              placeholder="e.g., 2*x1 + 3*x2"
-            />
-            <select
-              value={objectiveType}
-              onChange={(e) => setObjectiveType(e.target.value as 'maximize' | 'minimize')}
-              className="ml-2 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="maximize">→ max</option>
-              <option value="minimize">→ min</option>
-            </select>
+    <div className="bg-white p-6 rounded-lg shadow-lg w-full">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Left side: Inputs */}
+        <div className="space-y-4">
+          <h2 className="text-2xl font-bold mb-4 text-gray-800">Параметры задачи</h2>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Целевая функция</label>
+            <div className="flex items-center mt-1">
+              <span className="text-gray-500 mr-2">F =</span>
+              <input
+                type="text"
+                value={objective}
+                onChange={(e) => setObjective(e.target.value)}
+                className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                placeholder="e.g., 2*x1 + 3*x2"
+              />
+              <select
+                value={objectiveType}
+                onChange={(e) => setObjectiveType(e.target.value as 'maximize' | 'minimize')}
+                className="ml-2 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="maximize">→ max</option>
+                <option value="minimize">→ min</option>
+              </select>
+            </div>
           </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Ограничения</label>
-          <div className="space-y-2 mt-1">
-            {constraints.map((constraint) => (
-              <div key={constraint.id} className="flex items-center">
-                <input
-                  type="text"
-                  value={constraint.value}
-                  onChange={(e) => handleConstraintChange(constraint.id, e.target.value)}
-                  className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="e.g., x1 + x2 <= 8"
-                />
-                <button
-                  onClick={() => handleRemoveConstraint(constraint.id)}
-                  className="ml-2 p-2 text-red-500 hover:text-red-700"
-                >
-                  &times;
-                </button>
-              </div>
-            ))}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Ограничения</label>
+            <div className="space-y-2 mt-1">
+              {constraints.map((constraint) => (
+                <div key={constraint.id} className="flex items-center">
+                  <input
+                    type="text"
+                    value={constraint.value}
+                    onChange={(e) => handleConstraintChange(constraint.id, e.target.value)}
+                    className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="e.g., x1 + x2 <= 8"
+                  />
+                  <button
+                    onClick={() => handleRemoveConstraint(constraint.id)}
+                    className="ml-2 p-2 text-red-500 hover:text-red-700"
+                  >
+                    &times;
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={handleAddConstraint}
+              className="mt-2 text-sm text-blue-600 hover:text-blue-800"
+            >
+              + Добавить ограничение
+            </button>
           </div>
           <button
-            onClick={handleAddConstraint}
-            className="mt-2 text-sm text-blue-600 hover:text-blue-800"
+            onClick={calculate}
+            className="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
-            + Добавить ограничение
+            Рассчитать
           </button>
         </div>
-        <button
-          onClick={calculate}
-          className="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          Рассчитать
-        </button>
-      </div>
-      {results && (
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-800">Результаты</h3>
-          <p className="mt-2 text-gray-700 whitespace-pre-wrap">{results}</p>
+
+        {/* Right side: Results and Chart */}
+        <div className="space-y-6">
+          {results && (
+            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 h-fit">
+              <h3 className="text-lg font-semibold text-gray-800">Результаты</h3>
+              <p className="mt-2 text-gray-700 whitespace-pre-wrap">{results}</p>
+            </div>
+          )}
+           {chartData && (
+            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <Line data={chartData} options={chartOptions} />
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 };
