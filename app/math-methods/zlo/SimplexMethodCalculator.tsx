@@ -58,7 +58,7 @@ const SimplexMethodCalculator: React.FC = () => {
         const match = part.match(/([+-]?\d*\.?\d*)\*?(x\d+)/);
         if (match) {
           const [, coeff, variable] = match;
-          let value = coeff === '' || coeff === '+' ? 1 : coeff === '-' ? -1 : parseFloat(coeff);
+          const value = coeff === '' || coeff === '+' ? 1 : coeff === '-' ? -1 : parseFloat(coeff);
           const index = varHeaders.indexOf(variable);
           if (index !== -1) {
             // If minimizing, negate the coefficients to convert to maximization
