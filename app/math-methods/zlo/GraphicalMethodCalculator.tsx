@@ -113,11 +113,11 @@ interface ConstraintInput {
 }
 
 const GraphicalMethodCalculator: React.FC = () => {
-  const [objective, setObjective] = useState('6*x + 5*y');
+  const [objective, setObjective] = useState('6x + 5y');
   const [objectiveType, setObjectiveType] = useState<'maximize' | 'minimize'>('maximize');
   const [constraints, setConstraints] = useState<ConstraintInput[]>([
-    { id: 1, value: '3*x + 2*y <= 10' },
-    { id: 2, value: '4*x + 2*y <= 8' },
+    { id: 1, value: '3x + 2y <= 10' },
+    { id: 2, value: '4x + y <= 8' },
     { id: 3, value: 'x >= 0' },
     { id: 4, value: 'y >= 0' },
   ]);
