@@ -353,7 +353,7 @@ const SimplexMethodCalculator: React.FC = () => {
               type="text"
               value={objective}
               onChange={(e) => setObjective(e.target.value)}
-              className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base"
+              className="flex-grow min-w-0 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base"
               placeholder="например: x1 + 2*x2"
             />
             <select
@@ -378,7 +378,7 @@ const SimplexMethodCalculator: React.FC = () => {
                   type="text"
                   value={constraint.value}
                   onChange={(e) => handleConstraintChange(constraint.id, e.target.value)}
-                  className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base"
+                  className="flex-grow min-w-0 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base"
                   placeholder="например: 2*x1 + 3*x2 <= 12"
                 />
                 <button
