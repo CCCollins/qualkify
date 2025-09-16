@@ -12,12 +12,12 @@ export default function LinearOptimizationPage() {
   const [activeTab, setActiveTab] = useState<Tab>("graphical")
 
   return (
-    <main className="max-w-6xl mx-auto px-2 sm:px-4 py-4 space-y-4 sm:space-y-6">
-      <div className="flex flex-col sm:flex-row justify-center items-center mb-4 sm:mb-6 space-y-2 sm:space-y-0">
+    <main className="max-w-6xl mx-auto px-4 space-y-6">
+      <div className="flex justify-center items-center mb-6">
         <Link href="/" className="text-blue-600 hover:text-blue-800 transition" title="Домашняя страница">
-          <TbSmartHome className="text-2xl sm:text-3xl mr-0 sm:mr-2" />
+          <TbSmartHome className="text-3xl mr-2" />
         </Link>
-        <h1 className="text-lg sm:text-xl md:text-3xl font-bold text-center text-balance">
+        <h1 className="text-xl md:text-3xl font-bold text-center text-balance">
           Решение задач линейной оптимизации (ЗЛО)
         </h1>
       </div>

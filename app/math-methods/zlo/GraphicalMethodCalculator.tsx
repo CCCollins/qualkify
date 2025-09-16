@@ -596,19 +596,19 @@ const GraphicalMethodCalculator: React.FC = () => {
           <div className="flex-grow space-y-3 sm:space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Целевая функция</label>
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-0">
-                <span className="text-gray-500 sm:mr-2 text-sm">F =</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-gray-500 text-sm">F =</span>
                 <input
                   type="text"
                   value={objective}
                   onChange={(e) => setObjective(e.target.value)}
-                  className="flex-grow p-3 sm:p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base"
+                  className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base"
                   placeholder="например: 2*x1 + 3*x2"
                 />
                 <select
                   value={objectiveType}
                   onChange={(e) => setObjectiveType(e.target.value as "maximize" | "minimize")}
-                  className="sm:ml-2 p-3 sm:p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base"
+                  className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base"
                 >
                   <option value="maximize">→ max</option>
                   <option value="minimize">→ min</option>
@@ -624,12 +624,12 @@ const GraphicalMethodCalculator: React.FC = () => {
                       type="text"
                       value={constraint.value}
                       onChange={(e) => handleConstraintChange(constraint.id, e.target.value)}
-                      className="flex-grow p-3 sm:p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base"
+                      className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base"
                       placeholder="например: x1 + x2 <= 8"
                     />
                     <button
                       onClick={() => handleRemoveConstraint(constraint.id)}
-                      className="p-3 sm:p-2 text-red-500 hover:text-red-700 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                      className="p-2 text-red-500 hover:text-red-700 min-w-[44px] min-h-[44px] flex items-center justify-center"
                     >
                       &times;
                     </button>
@@ -643,7 +643,7 @@ const GraphicalMethodCalculator: React.FC = () => {
           </div>
           <button
             onClick={calculate}
-            className="w-full bg-blue-600 text-white font-bold py-3 sm:py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 mt-auto min-h-[44px] transition-colors"
+            className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 mt-auto min-h-[44px] transition-colors"
           >
             Рассчитать
           </button>
@@ -651,11 +651,11 @@ const GraphicalMethodCalculator: React.FC = () => {
 
         <div className="bg-gray-50 p-4 sm:p-6 rounded-lg border border-gray-200 flex-grow flex items-center justify-center min-h-[300px] sm:min-h-[400px]">
           {chartData ? (
-            <div className="w-full h-full">
+            <div className="w-full h-full relative">
               <Chart
                 type="line"
                 data={chartData as ChartData<"line" | "scatter">}
-                options={{ ...chartOptionsState, maintainAspectRatio: false }}
+                options={chartOptionsState}
               />
             </div>
           ) : (

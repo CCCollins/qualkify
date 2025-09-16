@@ -347,19 +347,19 @@ const SimplexMethodCalculator: React.FC = () => {
       <div className="space-y-3 sm:space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Целевая функция</label>
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-0">
-            <span className="text-gray-500 sm:mr-2 text-sm">F =</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-gray-500 text-sm">F =</span>
             <input
               type="text"
               value={objective}
               onChange={(e) => setObjective(e.target.value)}
-              className="flex-grow p-3 sm:p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base"
+              className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base"
               placeholder="например: x1 + 2*x2"
             />
             <select
               value={objectiveType}
               onChange={(e) => setObjectiveType(e.target.value as "maximize" | "minimize")}
-              className="sm:ml-2 p-3 sm:p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base"
+              className="p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base"
             >
               <option value="maximize">→ max</option>
               <option value="minimize">→ min</option>
@@ -378,12 +378,12 @@ const SimplexMethodCalculator: React.FC = () => {
                   type="text"
                   value={constraint.value}
                   onChange={(e) => handleConstraintChange(constraint.id, e.target.value)}
-                  className="flex-grow p-3 sm:p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base"
+                  className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base"
                   placeholder="например: 2*x1 + 3*x2 <= 12"
                 />
                 <button
                   onClick={() => handleRemoveConstraint(constraint.id)}
-                  className="p-3 sm:p-2 text-red-500 hover:text-red-700 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                  className="p-2 text-red-500 hover:text-red-700 min-w-[44px] min-h-[44px] flex items-center justify-center"
                 >
                   ×
                 </button>
@@ -396,7 +396,7 @@ const SimplexMethodCalculator: React.FC = () => {
         </div>
         <button
           onClick={calculate}
-          className="w-full bg-blue-600 text-white font-bold py-3 sm:py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 min-h-[44px] transition-colors"
+          className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 min-h-[44px] transition-colors"
         >
           Рассчитать
         </button>
