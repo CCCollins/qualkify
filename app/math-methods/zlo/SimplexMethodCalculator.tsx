@@ -17,6 +17,7 @@ interface ConstraintInput {
 
 const SimplexMethodCalculator: React.FC = () => {
   const [objective, setObjective] = useState('x1 + 2*x2');
+  const [objectiveType, setObjectiveType] = useState<'maximize' | 'minimize'>('maximize');
   const [constraints, setConstraints] = useState<ConstraintInput[]>([
     { id: 1, value: '2*x1 + 3*x2 <= 12' },
     { id: 2, value: 'x1 + 5*x2 <= 15' },
@@ -57,9 +58,12 @@ const SimplexMethodCalculator: React.FC = () => {
         const match = part.match(/([+-]?\d*\.?\d*)\*?(x\d+)/);
         if (match) {
           const [, coeff, variable] = match;
-          const value = coeff === '' || coeff === '+' ? 1 : coeff === '-' ? -1 : parseFloat(coeff);
+          let value = coeff === '' || coeff === '+' ? 1 : coeff === '-' ? -1 : parseFloat(coeff);
           const index = varHeaders.indexOf(variable);
-          if (index !== -1) Cj[index] = value;
+          if (index !== -1) {
+            // If minimizing, negate the coefficients to convert to maximization
+            Cj[index] = objectiveType === 'minimize' ? -value : value;
+          }
         }
       });
       
@@ -161,7 +165,9 @@ const SimplexMethodCalculator: React.FC = () => {
       }
 
       // 3. Format and Display Results
-      const solution = `Оптимальное решение найдено.\nМаксимальное значение F = ${format(steps[steps.length-1].matrix[steps[steps.length-1].matrix.length-2][varHeaders.length], {notation: 'fixed', precision: 4})}\n`;
+      const finalZj = steps[steps.length-1].matrix[steps[steps.length-1].matrix.length-2][varHeaders.length];
+      const optimalValue = objectiveType === 'minimize' ? -finalZj : finalZj;
+      const solution = `Оптимальное решение найдено.\n${objectiveType === 'minimize' ? 'Минимальное' : 'Максимальное'} значение F = ${format(optimalValue, {notation: 'fixed', precision: 4})}\n`;
       const variables = varHeaders.map((v,i) => {
         const basisIndex = steps[steps.length-1].basis.indexOf(i);
         if(basisIndex !== -1) {
@@ -228,7 +234,7 @@ const SimplexMethodCalculator: React.FC = () => {
       <h2 className="text-2xl font-bold mb-4 text-gray-800">Симплекс-метод</h2>
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700">Целевая функция (для максимизации)</label>
+          <label className="block text-sm font-medium text-gray-700">Целевая функция</label>
           <div className="flex items-center mt-1">
             <span className="text-gray-500 mr-2">F =</span>
             <input
@@ -238,7 +244,14 @@ const SimplexMethodCalculator: React.FC = () => {
               className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
               placeholder="e.g., x1 + 2*x2"
             />
-             <span className="ml-2 text-gray-500">→ max</span>
+            <select
+                value={objectiveType}
+                onChange={(e) => setObjectiveType(e.target.value as 'maximize' | 'minimize')}
+                className="ml-2 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="maximize">→ max</option>
+                <option value="minimize">→ min</option>
+              </select>
           </div>
         </div>
         <div>
