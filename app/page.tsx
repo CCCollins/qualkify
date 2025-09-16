@@ -41,6 +41,16 @@ const categories = [
       { name: 'Финансы организаций', path: '/finance-and-credit/organizational-finance', emoji: '🏢' },
     ],
   },
+  {
+    name: 'Математические методы',
+    path: '/math-methods',
+    icon: '📈',
+    color: 'from-purple-100 to-purple-50',
+    text: 'text-purple-800',
+    modules: [
+      { name: 'Решение задач линейной оптимизации (ЗЛО)', path: '/math-methods/zlo', emoji: '📐' },
+    ],
+  },
 ];
 
 export default function Home() {
