@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { evaluate, format } from 'mathjs';
-import { Line } from 'react-chartjs-2';
+import { Chart } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -13,6 +13,9 @@ import {
   Tooltip,
   Legend,
   Filler,
+  ChartData,
+  ChartOptions,
+  ChartDataset,
 } from 'chart.js';
 
 ChartJS.register(
@@ -106,7 +109,7 @@ const GraphicalMethodCalculator: React.FC = () => {
     { id: 4, value: 'x2 >= 0'}
   ]);
   const [results, setResults] = useState<string | null>(null);
-  const [chartData, setChartData] = useState<any>(null);
+  const [chartData, setChartData] = useState<ChartData<'line' | 'scatter'> | null>(null);
 
 
   const handleAddConstraint = () => {
@@ -204,7 +207,7 @@ const GraphicalMethodCalculator: React.FC = () => {
     const xMax = allPoints.reduce((max, p) => Math.max(max, p.x1), 0) * 1.2 + 5;
     const yMax = allPoints.reduce((max, p) => Math.max(max, p.x2), 0) * 1.2 + 5;
   
-    const datasets = constraints.map((c, i) => {
+    const datasets: ChartDataset<'line' | 'scatter'>[] = constraints.map((c, i) => {
       const [a, b] = c.coeffs;
       const rhs = c.rhs;
       let p1, p2;
@@ -224,7 +227,7 @@ const GraphicalMethodCalculator: React.FC = () => {
         fill: false,
         tension: 0,
         pointRadius: 0,
-        type: 'line',
+        type: 'line' as const,
       };
     });
   
@@ -234,30 +237,33 @@ const GraphicalMethodCalculator: React.FC = () => {
         label: 'Допустимая область',
         data: [...feasiblePoints, feasiblePoints[0]].map(p => ({ x: p.x1, y: p.x2 })),
         borderColor: 'rgba(75, 192, 192, 1)',
+        backgroundColor: 'rgba(75, 192, 192, 0.2)',
         borderWidth: 1,
         fill: true,
         pointRadius: 0,
-        type: 'line',
-      } as any);
+        type: 'line' as const,
+      });
     }
   
     // Add corner points
     datasets.push({
       label: 'Угловые точки',
       data: feasiblePoints.map(p => ({ x: p.x1, y: p.x2 })),
+      backgroundColor: 'rgba(255, 99, 132, 1)',
       pointRadius: 5,
-      type: 'scatter',
-    } as any);
+      type: 'scatter' as const,
+    });
   
     // Add optimal point
     if (optimalPoint) {
       datasets.push({
         label: 'Оптимальная точка',
         data: [{ x: optimalPoint.x1, y: optimalPoint.x2 }],
+        backgroundColor: 'rgba(54, 162, 235, 1)',
         pointRadius: 7,
         pointStyle: 'rectRot',
-        type: 'scatter',
-      } as any);
+        type: 'scatter' as const,
+      });
     }
   
     setChartData({
@@ -265,7 +271,7 @@ const GraphicalMethodCalculator: React.FC = () => {
     });
   };
 
-  const chartOptions: any = {
+  const chartOptions: ChartOptions<'line' | 'scatter'> = {
     responsive: true,
     maintainAspectRatio: true,
     aspectRatio: 1.5,
@@ -372,7 +378,7 @@ const GraphicalMethodCalculator: React.FC = () => {
           )}
            {chartData && (
             <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <Line data={chartData} options={chartOptions} />
+              <Chart type="line" data={chartData as ChartData<'line' | 'scatter'>} options={chartOptions as ChartOptions<'line' | 'scatter'>} />
             </div>
           )}
         </div>
