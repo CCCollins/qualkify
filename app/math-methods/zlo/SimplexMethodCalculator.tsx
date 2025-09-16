@@ -11,8 +11,31 @@ type Tableau = {
 }
 
 interface ConstraintInput {
-  id: number
-  value: string
+  id: number;
+  value: string;
+}
+
+interface SimplexStep {
+  tableau: Tableau;
+  explanation: string;
+  Cj: number[];
+  Zj: number[];
+  CjZj: number[];
+}
+
+interface OptimalSolution {
+  value: number;
+  variableValues: string;
+}
+
+interface CalculationResults {
+  problemStatement: {
+    objective: string;
+    objectiveType: 'maximize' | 'minimize';
+    constraints: ConstraintInput[];
+  };
+  steps: SimplexStep[];
+  solution: OptimalSolution;
 }
 
 const gcd = (a: number, b: number): number => {
@@ -55,13 +78,14 @@ const toFraction = (decimal: number, tolerance = 1e-6): string => {
 }
 
 const SimplexMethodCalculator: React.FC = () => {
-  const [objective, setObjective] = useState("5y + 9x")
-  const [objectiveType, setObjectiveType] = useState<"maximize" | "minimize">("maximize")
+  const [objective, setObjective] = useState('5y + 9x');
+  const [objectiveType, setObjectiveType] = useState<'maximize' | 'minimize'>('maximize');
   const [constraints, setConstraints] = useState<ConstraintInput[]>([
-    { id: 1, value: "2y + 5x <= 12" },
-    { id: 2, value: "3y + 5x <= 15" },
-  ])
-  const [results, setResults] = useState<React.ReactNode | null>(null)
+    { id: 1, value: '2y + 5x <= 12' },
+    { id: 2, value: '3y + 5x <= 15' },
+  ]);
+  const [results, setResults] = useState<CalculationResults | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleAddConstraint = () => {
     setConstraints([...constraints, { id: Date.now(), value: "" }])
@@ -77,6 +101,7 @@ const SimplexMethodCalculator: React.FC = () => {
 
   const calculate = () => {
     try {
+      setError(null);
       const varRegex = /[a-zA-Z][\w]*/g
       const allVars = new Set<string>()
       ;[objective, ...constraints.map((c) => c.value)].forEach((str) => {
@@ -161,8 +186,8 @@ const SimplexMethodCalculator: React.FC = () => {
         matrix.push(row)
       })
 
-      let currentTableau: Tableau = { headers: ["Базис", ...varHeaders, "ПЧ"], matrix, basis }
-      const steps: { tableau: Tableau; explanation: string; Cj: number[]; Zj: number[]; CjZj: number[] }[] = []
+      let currentTableau: Tableau = { headers: ['Базис', ...varHeaders, 'ПЧ'], matrix, basis };
+      const steps: SimplexStep[] = [];
 
       for (let iter = 0; iter < 20; iter++) {
         const Zj = new Array(varHeaders.length + 1).fill(0)
@@ -278,143 +303,63 @@ const SimplexMethodCalculator: React.FC = () => {
         currentTableau = { headers: currentTableau.headers, matrix: newMatrix, basis: newBasis }
       }
 
-      const finalStep = steps[steps.length - 1]
-      const finalZj = finalStep.Zj[varHeaders.length]
-      const optimalValue = objectiveType === "minimize" ? -finalZj : finalZj
+      const finalStep = steps[steps.length - 1];
+      const finalZj = finalStep.Zj[varHeaders.length];
+      const optimalValue = objectiveType === 'minimize' ? -finalZj : finalZj;
 
       const solutionVars = varHeaders
         .map((v, i) => {
-          const basisIndex = finalStep.tableau.basis.indexOf(i)
+          const basisIndex = finalStep.tableau.basis.indexOf(i);
           if (basisIndex !== -1) {
-            return `${v} = ${toFraction(finalStep.tableau.matrix[basisIndex][varHeaders.length])}`
+            return `${v} = ${toFraction(finalStep.tableau.matrix[basisIndex][varHeaders.length])}`;
           }
-          return `${v} = 0`
+          return `${v} = 0`;
         })
-        .join(", ")
+        .join(', ');
 
-      setResults(
-        <div className="space-y-6">
-          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
-            <h4 className="font-bold text-blue-800 mb-2">Постановка задачи:</h4>
-            <p className="text-blue-700">
-              <strong>Целевая функция:</strong> F = {objective} → {objectiveType === "maximize" ? "max" : "min"}
-            </p>
-            <p className="text-blue-700">
-              <strong>Ограничения:</strong>
-            </p>
-            <ul className="list-disc list-inside text-blue-700 ml-4">
-              {activeConstraints.map((constraint, i) => (
-                <li key={i}>{constraint.value}</li>
-              ))}
-              {decisionVars.map((v) => (
-                <li key={v}>{v} ≥ 0</li>
-              ))}
-            </ul>
-          </div>
+      setResults({
+        problemStatement: {
+          objective,
+          objectiveType,
+          constraints: constraints.filter((c) => c.value.trim()),
+        },
+        steps,
+        solution: {
+          value: optimalValue,
+          variableValues: solutionVars,
+        },
+      });
 
-          {steps.map((step, i) => (
-            <div key={i} className="mb-8 border border-gray-300 rounded-lg p-4">
-              <div className="mb-4">
-                <div className="whitespace-pre-line text-sm text-gray-700 bg-gray-50 p-3 rounded">
-                  {step.explanation}
-                </div>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="table-auto border-collapse border border-gray-400 w-full text-center text-sm">
-                  <thead>
-                    <tr>
-                      {step.tableau.headers.map((h) => (
-                        <th key={h} className="border border-gray-300 p-2 bg-gray-100 font-semibold">
-                          {h}
-                        </th>
-                      ))}
-                      <th className="border border-gray-300 p-2 bg-gray-100 font-semibold">Cj</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {step.tableau.matrix.slice(0, step.tableau.matrix.length - 2).map((row, r_idx) => (
-                      <tr key={r_idx}>
-                        <td className="border border-gray-300 p-2 font-semibold bg-gray-50">
-                          {varHeaders[step.tableau.basis[r_idx]]}
-                        </td>
-                        {row.map((cell, c_idx) => (
-                          <td
-                            key={c_idx}
-                            className={`border border-gray-300 p-2 ${step.tableau.pivot?.row === r_idx && step.tableau.pivot?.col === c_idx ? "bg-yellow-200 font-bold" : ""}`}
-                          >
-                            {toFraction(cell)}
-                          </td>
-                        ))}
-                        <td className="border border-gray-300 p-2 bg-gray-100">
-                          {toFraction(step.Cj[step.tableau.basis[r_idx]])}
-                        </td>
-                      </tr>
-                    ))}
-                    <tr className="bg-blue-50">
-                      <td className="border border-gray-300 p-2 font-semibold">Zj</td>
-                      {step.Zj.slice(0, -1).map((cell, c_idx) => (
-                        <td key={c_idx} className="border border-gray-300 p-2 font-semibold">
-                          {toFraction(cell)}
-                        </td>
-                      ))}
-                      <td className="border border-gray-300 p-2 font-semibold">
-                        {toFraction(step.Zj[step.Zj.length - 1])}
-                      </td>
-                      <td className="border border-gray-300 p-2 bg-gray-100"></td>
-                    </tr>
-                    <tr className="bg-green-50">
-                      <td className="border border-gray-300 p-2 font-semibold">Cj - Zj</td>
-                      {step.CjZj.map((cell, c_idx) => (
-                        <td key={c_idx} className="border border-gray-300 p-2 font-semibold">
-                          {toFraction(cell)}
-                        </td>
-                      ))}
-                      <td className="border border-gray-300 p-2"></td>
-                      <td className="border border-gray-300 p-2 bg-gray-100"></td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ))}
-
-          <div className="mt-6 p-4 bg-green-100 border border-green-300 rounded-md">
-            <h4 className="font-bold text-green-800 mb-2">Оптимальное решение:</h4>
-            <p className="text-green-700">
-              <strong>{objectiveType === "minimize" ? "Минимальное" : "Максимальное"} значение:</strong> F ={" "}
-              {toFraction(optimalValue)}
-            </p>
-            <p className="text-green-700">
-              <strong>Значения переменных:</strong> {solutionVars}
-            </p>
-          </div>
-        </div>,
-      )
     } catch (e) {
-      setResults(<p className="text-red-500">{(e as Error).message}</p>)
+      setError((e as Error).message);
+      setResults(null);
     }
-  }
+  };
+
+  const varHeaders =
+    results && results.steps.length > 0
+      ? results.steps[0].tableau.headers.slice(1, -1)
+      : [];
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-6xl">
-      <h2 className="text-2xl font-bold mb-4 text-gray-800">Симплекс-метод</h2>
-      <div className="space-y-4">
+    <div className="bg-white p-3 sm:p-6 rounded-lg shadow-lg w-full max-w-6xl">
+      <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-gray-800">Симплекс-метод</h2>
+      <div className="space-y-3 sm:space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700">Целевая функция</label>
-          <div className="flex items-center mt-1">
-            <span className="text-gray-500 mr-2">F =</span>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Целевая функция</label>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-0">
+            <span className="text-gray-500 sm:mr-2 text-sm">F =</span>
             <input
               type="text"
               value={objective}
               onChange={(e) => setObjective(e.target.value)}
-              className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              className="flex-grow p-3 sm:p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base"
               placeholder="например: x1 + 2*x2"
             />
             <select
               value={objectiveType}
               onChange={(e) => setObjectiveType(e.target.value as "maximize" | "minimize")}
-              className="ml-2 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              className="sm:ml-2 p-3 sm:p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base"
             >
               <option value="maximize">→ max</option>
               <option value="minimize">→ min</option>
@@ -422,48 +367,143 @@ const SimplexMethodCalculator: React.FC = () => {
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Ограничения (в форме ≤)</label>
-          <p className="text-xs text-gray-500 mt-1">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Ограничения (в форме ≤)</label>
+          <p className="text-xs text-gray-500 mb-2">
             Примечание: Условия неотрицательности (например, x ≥ 0) вводить не нужно, они учитываются автоматически.
           </p>
-          <div className="space-y-2 mt-1">
+          <div className="space-y-2">
             {constraints.map((constraint) => (
-              <div key={constraint.id} className="flex items-center">
+              <div key={constraint.id} className="flex items-center gap-2">
                 <input
                   type="text"
                   value={constraint.value}
                   onChange={(e) => handleConstraintChange(constraint.id, e.target.value)}
-                  className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  className="flex-grow p-3 sm:p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base"
                   placeholder="например: 2*x1 + 3*x2 <= 12"
                 />
                 <button
                   onClick={() => handleRemoveConstraint(constraint.id)}
-                  className="ml-2 p-2 text-red-500 hover:text-red-700"
+                  className="p-3 sm:p-2 text-red-500 hover:text-red-700 min-w-[44px] min-h-[44px] flex items-center justify-center"
                 >
                   ×
                 </button>
               </div>
             ))}
           </div>
-          <button onClick={handleAddConstraint} className="mt-2 text-sm text-blue-600 hover:text-blue-800">
+          <button onClick={handleAddConstraint} className="mt-3 text-sm text-blue-600 hover:text-blue-800 p-2">
             + Добавить ограничение
           </button>
         </div>
         <button
           onClick={calculate}
-          className="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          className="w-full bg-blue-600 text-white font-bold py-3 sm:py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 min-h-[44px] transition-colors"
         >
           Рассчитать
         </button>
       </div>
+      {error && (
+         <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-red-50 rounded-lg border border-red-200">
+            <p className="text-red-600">{error}</p>
+         </div>
+      )}
+
       {results && (
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Пошаговое решение симплекс-методом</h3>
-          <div className="text-gray-700">{results}</div>
+        <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-gray-50 rounded-lg border border-gray-200">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">
+            Пошаговое решение симплекс-методом
+          </h3>
+          <div className="space-y-4 sm:space-y-6">
+            {/* Блок постановки задачи */}
+            <div className="mb-3 sm:mb-4 p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded-md">
+              <h4 className="font-bold text-blue-800 mb-2 text-sm sm:text-base">Постановка задачи:</h4>
+              <p className="text-blue-700 text-sm sm:text-base mb-1">
+                <strong>Целевая функция:</strong> F = {results.problemStatement.objective} → {results.problemStatement.objectiveType === "maximize" ? "max" : "min"}
+              </p>
+              <p className="text-blue-700 text-sm sm:text-base mb-1">
+                <strong>Ограничения:</strong>
+              </p>
+              <ul className="list-disc list-inside text-blue-700 ml-2 sm:ml-4 text-sm sm:text-base">
+                {results.problemStatement.constraints.map((constraint, i) => (
+                  <li key={i} className="break-all">
+                    {constraint.value}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Итерация по шагам */}
+            {results.steps.map((step, i) => (
+              <div key={i} className="border border-gray-300 rounded-lg p-2 sm:p-4">
+                <div className="mb-3 sm:mb-4">
+                  <div className="whitespace-pre-line text-xs sm:text-sm text-gray-700 bg-gray-50 p-3 sm:p-3 rounded overflow-x-auto">
+                    {step.explanation}
+                  </div>
+                </div>
+                <div className="overflow-x-auto -mx-2 sm:mx-0">
+                  <table className="table-auto border-collapse border border-gray-400 w-full text-center text-sm">
+                    {/* ... (логика рендеринга таблицы остается такой же, но теперь данные берутся из `step`) ... */}
+                    <thead>
+                      <tr>
+                        {step.tableau.headers.map((h) => (
+                          <th key={h} className="border border-gray-300 p-2 bg-gray-100 font-semibold">{h}</th>
+                        ))}
+                        <th className="border border-gray-300 p-2 bg-gray-100 font-semibold">Cj</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {step.tableau.matrix.slice(0, step.tableau.matrix.length - 2).map((row, r_idx) => (
+                        <tr key={r_idx}>
+                          <td className="border border-gray-300 p-2 font-semibold bg-gray-50">
+                            {varHeaders[step.tableau.basis[r_idx]]}
+                          </td>
+                          {row.map((cell, c_idx) => (
+                            <td key={c_idx} className={`border border-gray-300 p-2 ${step.tableau.pivot?.row === r_idx && step.tableau.pivot?.col === c_idx + 1 ? "bg-yellow-200 font-bold" : ""}`}>
+                              {toFraction(cell)}
+                            </td>
+                          ))}
+                          <td className="border border-gray-300 p-2 bg-gray-100">
+                            {toFraction(step.Cj[step.tableau.basis[r_idx]])}
+                          </td>
+                        </tr>
+                      ))}
+                      <tr className="bg-blue-50">
+                        <td className="border border-gray-300 p-2 font-semibold">Zj</td>
+                        {step.Zj.slice(0, -1).map((cell, c_idx) => (
+                          <td key={c_idx} className="border border-gray-300 p-2 font-semibold">{toFraction(cell)}</td>
+                        ))}
+                        <td className="border border-gray-300 p-2 font-semibold">{toFraction(step.Zj[step.Zj.length - 1])}</td>
+                        <td className="border border-gray-300 p-2 bg-gray-100"></td>
+                      </tr>
+                      <tr className="bg-green-50">
+                        <td className="border border-gray-300 p-2 font-semibold">Cj - Zj</td>
+                        {step.CjZj.map((cell, c_idx) => (
+                          <td key={c_idx} className="border border-gray-300 p-2 font-semibold">{toFraction(cell)}</td>
+                        ))}
+                        <td className="border border-gray-300 p-2"></td>
+                        <td className="border border-gray-300 p-2 bg-gray-100"></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
+
+            {/* Блок с финальным решением */}
+            <div className="mt-6 p-4 bg-green-100 border border-green-300 rounded-md">
+              <h4 className="font-bold text-green-800 mb-2">Оптимальное решение:</h4>
+              <p className="text-green-700">
+                <strong>{results.problemStatement.objectiveType === "minimize" ? "Минимальное" : "Максимальное"} значение:</strong> F ={" "}
+                {toFraction(results.solution.value)}
+              </p>
+              <p className="text-green-700">
+                <strong>Значения переменных:</strong> {results.solution.variableValues}
+              </p>
+            </div>
+          </div>
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
 export default SimplexMethodCalculator

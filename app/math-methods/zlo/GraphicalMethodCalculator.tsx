@@ -418,12 +418,13 @@ const GraphicalMethodCalculator: React.FC = () => {
       steps += `F* = ${formatAsFraction(optimalValue)}\n`
       steps += `Достигается в точке: (${formatAsFraction((optimalPoint as Point).x)}, ${formatAsFraction((optimalPoint as Point).y)})\n`
       steps += `\nОтвет: ${var1}* = ${formatAsFraction((optimalPoint as Point).x)}, ${var2}* = ${formatAsFraction((optimalPoint as Point).y)}, F* = ${formatAsFraction(optimalValue)}`
+
+      setResults(steps)
+      generateChartData(parsedConstraints, uniqueFeasiblePoints, optimalPoint, objective, variableNames)
     } else {
       steps += "\nНе удалось найти оптимальное решение."
+      setResults(steps)
     }
-
-    setResults(steps)
-    generateChartData(parsedConstraints, uniqueFeasiblePoints, optimalPoint, objective, variableNames)
   }
 
   const generateChartData = (
@@ -527,49 +528,84 @@ const GraphicalMethodCalculator: React.FC = () => {
   const chartOptions: ChartOptions<"line" | "scatter"> = {
     responsive: true,
     maintainAspectRatio: true,
-    aspectRatio: 1.5,
+    aspectRatio: window?.innerWidth < 768 ? 1 : 1.5,
     plugins: {
-      legend: { position: "top" },
-      title: { display: true, text: "Графическое представление решения" },
+      legend: {
+        position: "top",
+        labels: {
+          boxWidth: 12,
+          padding: 8,
+          font: {
+            size: window?.innerWidth < 768 ? 10 : 12,
+          },
+        },
+      },
+      title: {
+        display: true,
+        text: "Графическое представление решения",
+        font: {
+          size: window?.innerWidth < 768 ? 12 : 14,
+        },
+      },
     },
     scales: {
       x: {
         type: "linear",
         position: "bottom",
-        title: { display: true, text: variableNames[0] },
+        title: {
+          display: true,
+          text: variableNames[0],
+          font: {
+            size: window?.innerWidth < 768 ? 10 : 12,
+          },
+        },
         min: 0,
+        ticks: {
+          font: {
+            size: window?.innerWidth < 768 ? 9 : 11,
+          },
+        },
       },
       y: {
         type: "linear",
-        title: { display: true, text: variableNames[1] },
+        title: {
+          display: true,
+          text: variableNames[1],
+          font: {
+            size: window?.innerWidth < 768 ? 10 : 12,
+          },
+        },
         min: 0,
+        ticks: {
+          font: {
+            size: window?.innerWidth < 768 ? 9 : 11,
+          },
+        },
       },
     },
   }
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-lg w-full flex flex-col space-y-8">
-      {/* Top section for inputs and chart */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
-        {/* Left side: Inputs */}
-        <div className="space-y-4 bg-gray-50 p-6 rounded-lg border border-gray-200 flex flex-col">
-          <h2 className="text-2xl font-bold mb-4 text-gray-800">Параметры задачи</h2>
-          <div className="flex-grow space-y-4">
+    <div className="bg-white p-3 sm:p-6 rounded-lg shadow-lg w-full flex flex-col space-y-4 sm:space-y-8">
+      <div className="flex flex-col lg:grid lg:grid-cols-2 gap-4 sm:gap-8 items-stretch">
+        <div className="space-y-3 sm:space-y-4 bg-gray-50 p-4 sm:p-6 rounded-lg border border-gray-200 flex flex-col">
+          <h2 className="text-xl sm:text-2xl font-bold mb-2 sm:mb-4 text-gray-800">Параметры задачи</h2>
+          <div className="flex-grow space-y-3 sm:space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">Целевая функция</label>
-              <div className="flex items-center mt-1">
-                <span className="text-gray-500 mr-2">F =</span>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Целевая функция</label>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-0">
+                <span className="text-gray-500 sm:mr-2 text-sm">F =</span>
                 <input
                   type="text"
                   value={objective}
                   onChange={(e) => setObjective(e.target.value)}
-                  className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  className="flex-grow p-3 sm:p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base"
                   placeholder="например: 2*x1 + 3*x2"
                 />
                 <select
                   value={objectiveType}
                   onChange={(e) => setObjectiveType(e.target.value as "maximize" | "minimize")}
-                  className="ml-2 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  className="sm:ml-2 p-3 sm:p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base"
                 >
                   <option value="maximize">→ max</option>
                   <option value="minimize">→ min</option>
@@ -577,61 +613,61 @@ const GraphicalMethodCalculator: React.FC = () => {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Ограничения</label>
-              <div className="space-y-2 mt-1">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Ограничения</label>
+              <div className="space-y-2">
                 {constraints.map((constraint) => (
-                  <div key={constraint.id} className="flex items-center">
+                  <div key={constraint.id} className="flex items-center gap-2">
                     <input
                       type="text"
                       value={constraint.value}
                       onChange={(e) => handleConstraintChange(constraint.id, e.target.value)}
-                      className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      className="flex-grow p-3 sm:p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base"
                       placeholder="например: x1 + x2 <= 8"
                     />
                     <button
                       onClick={() => handleRemoveConstraint(constraint.id)}
-                      className="ml-2 p-2 text-red-500 hover:text-red-700"
+                      className="p-3 sm:p-2 text-red-500 hover:text-red-700 min-w-[44px] min-h-[44px] flex items-center justify-center"
                     >
                       &times;
                     </button>
                   </div>
                 ))}
               </div>
-              <button onClick={handleAddConstraint} className="mt-2 text-sm text-blue-600 hover:text-blue-800">
+              <button onClick={handleAddConstraint} className="mt-3 text-sm text-blue-600 hover:text-blue-800 p-2">
                 + Добавить ограничение
               </button>
             </div>
           </div>
           <button
             onClick={calculate}
-            className="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 mt-auto"
+            className="w-full bg-blue-600 text-white font-bold py-3 sm:py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 mt-auto min-h-[44px] transition-colors"
           >
             Рассчитать
           </button>
         </div>
 
-        {/* Right side: Chart */}
-        <div className="bg-gray-50 p-6 rounded-lg border border-gray-200 flex-grow flex items-center justify-center">
+        <div className="bg-gray-50 p-4 sm:p-6 rounded-lg border border-gray-200 flex-grow flex items-center justify-center min-h-[300px] sm:min-h-[400px]">
           {chartData ? (
-            <Chart
-              type="line"
-              data={chartData as ChartData<"line" | "scatter">}
-              options={{ ...chartOptions, maintainAspectRatio: false }}
-            />
+            <div className="w-full h-full">
+              <Chart
+                type="line"
+                data={chartData as ChartData<"line" | "scatter">}
+                options={{ ...chartOptions, maintainAspectRatio: false }}
+              />
+            </div>
           ) : (
-            <div className="text-center text-gray-500">
-              <p>График появится здесь после расчета.</p>
+            <div className="text-center text-gray-500 p-4">
+              <p className="text-sm sm:text-base">График появится здесь после расчета.</p>
             </div>
           )}
         </div>
       </div>
 
-      {/* Bottom section for results */}
       {results && (
-        <div className="p-6 bg-gray-50 rounded-lg border border-gray-200">
-          <h3 className="text-xl font-semibold text-gray-800 mb-4">Подробное решение</h3>
+        <div className="p-4 sm:p-6 bg-gray-50 rounded-lg border border-gray-200">
+          <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-3 sm:mb-4">Подробное решение</h3>
           <div
-            className="text-gray-700 whitespace-pre-wrap bg-white p-4 rounded-md border"
+            className="text-gray-700 whitespace-pre-wrap bg-white p-3 sm:p-4 rounded-md border text-xs sm:text-sm overflow-x-auto"
             style={{
               fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace',
             }}
