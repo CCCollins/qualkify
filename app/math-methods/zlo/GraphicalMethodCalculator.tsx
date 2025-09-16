@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { evaluate } from "mathjs"
 import { Chart } from "react-chartjs-2"
 import {
@@ -216,6 +216,69 @@ const GraphicalMethodCalculator: React.FC = () => {
   const [results, setResults] = useState<string | null>(null)
   const [chartData, setChartData] = useState<ChartData<"line" | "scatter"> | null>(null)
   const [variableNames, setVariableNames] = useState<[string, string]>(["x", "y"])
+  const [chartOptionsState, setChartOptionsState] = useState<ChartOptions<"line" | "scatter">>({})
+
+  useEffect(() => {
+    setChartOptionsState({
+      responsive: true,
+      maintainAspectRatio: true,
+      aspectRatio: window.innerWidth < 768 ? 1 : 1.5,
+      plugins: {
+        legend: {
+          position: "top",
+          labels: {
+            boxWidth: 12,
+            padding: 8,
+            font: {
+              size: window.innerWidth < 768 ? 10 : 12,
+            },
+          },
+        },
+        title: {
+          display: true,
+          text: "Графическое представление решения",
+          font: {
+            size: window.innerWidth < 768 ? 12 : 14,
+          },
+        },
+      },
+      scales: {
+        x: {
+          type: "linear",
+          position: "bottom",
+          title: {
+            display: true,
+            text: variableNames[0],
+            font: {
+              size: window.innerWidth < 768 ? 10 : 12,
+            },
+          },
+          min: 0,
+          ticks: {
+            font: {
+              size: window.innerWidth < 768 ? 9 : 11,
+            },
+          },
+        },
+        y: {
+          type: "linear",
+          title: {
+            display: true,
+            text: variableNames[1],
+            font: {
+              size: window.innerWidth < 768 ? 10 : 12,
+            },
+          },
+          min: 0,
+          ticks: {
+            font: {
+              size: window.innerWidth < 768 ? 9 : 11,
+            },
+          },
+        },
+      },
+    })
+  }, [variableNames])
 
   const handleAddConstraint = () => {
     setConstraints([...constraints, { id: Date.now(), value: "" }])
@@ -652,7 +715,7 @@ const GraphicalMethodCalculator: React.FC = () => {
               <Chart
                 type="line"
                 data={chartData as ChartData<"line" | "scatter">}
-                options={{ ...chartOptions, maintainAspectRatio: false }}
+                options={{ ...chartOptionsState, maintainAspectRatio: false }}
               />
             </div>
           ) : (
