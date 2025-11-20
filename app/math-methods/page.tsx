@@ -3,7 +3,11 @@
 import Link from 'next/link';
 
 const modules = [
-  { name: 'Решение задач линейной оптимизации (ЗЛО)', path: '/math-methods/zlo', emoji: '📐' },
+  { name: 'Задачи линейной оптимизации (ЗЛО)', path: '/math-methods/zlo', emoji: '📐' },
+  { name: 'Транспортная задача', path: '/math-methods/transport', emoji: '🚚' },
+  { name: 'Матричная задача', path: '/math-methods/matrix', emoji: '🧮' },
+  { name: 'Градиент', path: '/math-methods/gradient', emoji: '📊' },
+  { name: 'Метод множителей Лагранжа', path: '/math-methods/lagrange', emoji: '🔧' },
 ];
 
 export default function Home() {
