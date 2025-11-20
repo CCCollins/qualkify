@@ -18,7 +18,7 @@ export default function LinearOptimizationPage() {
           <TbSmartHome className="text-3xl mr-2" />
         </Link>
         <h1 className="text-xl md:text-3xl font-bold text-center text-balance">
-          Решение задач линейной оптимизации (ЗЛО)
+          Задачи линейной оптимизации (ЗЛО)
         </h1>
       </div>
 
