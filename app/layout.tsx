@@ -60,7 +60,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Qualkify — умный калькулятор для учёбы онлайн',
-    description: 'Бесплатный онлайн калькулятор для студентов: дискретная математика, статистика, логика, кредиты и финансы.',
+    description: 'Бесплатный онлайн калькулятор для студентов: высшая математика, статистика, логика, кредиты и финансы.',
     images: ['https://qualkify.vercel.app/og-image.png'],
     creator: '@qualkify',
   },
