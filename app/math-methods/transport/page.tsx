@@ -344,7 +344,7 @@ export default function TransportProblemPage() {
   };
 
   return (
-    <main className="max-w-4xl mx-auto px-4 py-8 space-y-8 bg-gray-50 min-h-screen text-gray-800">
+    <main className="max-w-4xl mx-auto px-4 space-y-6">
       
       <style jsx global>{`
         .no-spinner::-webkit-inner-spin-button, 
