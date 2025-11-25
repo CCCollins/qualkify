@@ -574,7 +574,7 @@ export default function TransportProblemPage() {
         );
       })}
 
-      {/* Сдержанный итог */}
+      {/* Итог */}
       {economy && (
         <div className="bg-white border border-gray-200 rounded-lg p-6 text-gray-700 shadow-sm">
             <h3 className="font-bold text-gray-800 text-lg mb-4 border-b pb-2">Результаты решения</h3>
@@ -582,11 +582,8 @@ export default function TransportProblemPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
                 <div className="space-y-2">
                     <div className="flex justify-between">
-                        <span className="text-gray-500">Оптимальные затраты (Fₒₚₜ):</span>
-                        <span className="font-mono font-bold">{economy.end}</span>
-                    </div>
-                    <div className="font-mono text-sm mb-2 text-gray-600">
-                        Экономия = ({economy.start} - {economy.end}) / {economy.start} × 100% = {economy.percent}%
+                        <span className="text-gray-500">Оптимальные затраты (Fₒₚₜ): {economy.end}</span>
+                        <span className="text-gray-500">Экономия = ({economy.start} - {economy.end}) / {economy.start} × 100% = {economy.percent}%</span>
                     </div>
                 </div>
             </div>
