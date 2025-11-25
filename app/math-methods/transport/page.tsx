@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { TbSmartHome, TbTableOptions, TbMath, TbSettings } from 'react-icons/tb';
+import { TbSmartHome, TbTableOptions, TbMath, TbSettings, TbCheck, TbTrendingDown } from 'react-icons/tb';
 
 interface Cell {
   cost: number;
@@ -173,6 +173,7 @@ export default function TransportProblemPage() {
       
       const logsData: IterationLog[] = [];
       
+      // 2. Начальный план (ММС)
       const allocation = Array(calcSuppliers).fill(null).map(() => Array(calcConsumers).fill(0));
       const remS = [...currentSupplyVals];
       const remD = [...currentDemandVals];
@@ -232,6 +233,7 @@ export default function TransportProblemPage() {
            } else break;
       }
 
+      // 3. Метод потенциалов
       let iter = 0;
       let optimal = false;
 
@@ -342,9 +344,8 @@ export default function TransportProblemPage() {
   };
 
   return (
-    <main className="max-w-6xl mx-auto px-4 space-y-6">
+    <main className="max-w-4xl mx-auto px-4 py-8 space-y-8 bg-gray-50 min-h-screen text-gray-800">
       
-      {/* Стили для скрытия стрелок инпута только для класса no-spinner */}
       <style jsx global>{`
         .no-spinner::-webkit-inner-spin-button, 
         .no-spinner::-webkit-outer-spin-button { 
@@ -376,10 +377,7 @@ export default function TransportProblemPage() {
             </button>
         </div>
         
-        {/* Сетка настроек */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            
-            {/* Размеры (стрелки оставлены) */}
             <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">Размерность матрицы</h3>
                 <div className="flex gap-4">
@@ -394,7 +392,6 @@ export default function TransportProblemPage() {
                 </div>
             </div>
 
-            {/* Запасы и Потребности (стрелки скрыты) */}
             <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">Ограничения</h3>
                 <div className="space-y-4">
@@ -418,7 +415,6 @@ export default function TransportProblemPage() {
             </div>
         </div>
           
-        {/* Матрица тарифов (стрелки скрыты, ячейки узкие) */}
         <div className="mt-6">
             <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2">
                 <TbTableOptions/> Матрица тарифов (C)
@@ -478,7 +474,7 @@ export default function TransportProblemPage() {
                 {/* Таблица */}
                 <div className="overflow-x-auto rounded-lg border border-gray-300 mb-6 shadow-inner bg-gray-50">
                     <div className="grid min-w-max" 
-                        style={{ gridTemplateColumns: `auto repeat(${log.tableau.cells[0].length}, minmax(70px, 1fr)) auto` }}>
+                        style={{ gridTemplateColumns: `auto repeat(${log.tableau.cells[0].length}, minmax(80px, 1fr)) auto` }}>
                         
                         {/* Header: V */}
                         <div className="bg-gray-100 border-r border-b border-gray-300 p-2"></div>
@@ -569,26 +565,37 @@ export default function TransportProblemPage() {
                         </div>
                     </div>
                 )}
+                
+                {/* Результаты внутри оптимального плана */}
+                {log.isOptimal && economy && (
+                    <div className="mt-6 bg-green-50 p-5 rounded-lg border border-green-200 shadow-sm text-gray-700">
+                        <div className="font-bold text-green-800 mb-3 flex items-center gap-2 text-lg border-b border-green-200 pb-2">
+                            <TbCheck className="text-xl"/> Результат решения
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                             <div>
+                                <div className="text-sm font-semibold text-gray-500 mb-1">Оптимальные затраты (Fₒₚₜ)</div>
+                                <div className="text-3xl font-bold text-green-700">{economy.end}</div>
+                                <div className="text-xs text-gray-400 mt-1 font-medium">Начальные затраты: {economy.start}</div>
+                             </div>
+                             <div>
+                                <div className="text-sm font-semibold text-gray-500 mb-1">Экономическая эффективность</div>
+                                <div className="flex items-baseline gap-2">
+                                    <div className="text-3xl font-bold text-green-700">{economy.percent}%</div>
+                                    <div className="text-sm text-green-600 font-medium flex items-center gap-1"><TbTrendingDown/> экономии</div>
+                                </div>
+                                <div className="text-xs font-mono text-gray-500 mt-2 bg-white px-2 py-1 rounded border border-green-100 inline-block shadow-sm">
+                                    ({economy.start} - {economy.end}) / {economy.start} × 100%
+                                </div>
+                             </div>
+                        </div>
+                    </div>
+                )}
             </div>
             </div>
         );
       })}
 
-      {/* Итог */}
-      {economy && (
-        <div className="bg-white border border-gray-200 rounded-lg p-6 text-gray-700 shadow-sm">
-            <h3 className="font-bold text-gray-800 text-lg mb-4 border-b pb-2">Результаты решения</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                <div className="space-y-2">
-                    <div className="flex justify-between">
-                        <span className="text-gray-500">Оптимальные затраты (Fₒₚₜ): {economy.end}</span>
-                        <span className="text-gray-500">Экономия = ({economy.start} - {economy.end}) / {economy.start} × 100% = {economy.percent}%</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-      )}
     </main>
   );
 }
