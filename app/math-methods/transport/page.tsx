@@ -268,7 +268,6 @@ export default function TransportProblemPage() {
         // б) Расчет оценок p_ij (в коде user delta)
         // Конспект: p_ij = c_ij - u_i - v_j
         let minP = 0, enterI = -1, enterJ = -1;
-        let pText = "";
         
         for(let i=0; i<suppliers; i++) for(let j=0; j<consumers; j++) {
             if(!cells[i][j].isBasic) {
