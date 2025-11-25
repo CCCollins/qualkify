@@ -147,7 +147,6 @@ export default function TransportProblemPage() {
     try {
       setError(null);
       
-      // 1. Подготовка данных и балансировка
       const currentSupplyVals = supply.map(s => parseFloat(s) || 0);
       const currentDemandVals = demand.map(d => parseFloat(d) || 0);
       const currentCosts = costs.map(row => row.map(c => parseFloat(c) || 0));
@@ -174,7 +173,6 @@ export default function TransportProblemPage() {
       
       const logsData: IterationLog[] = [];
       
-      // 2. Начальный план (ММС)
       const allocation = Array(calcSuppliers).fill(null).map(() => Array(calcConsumers).fill(0));
       const remS = [...currentSupplyVals];
       const remD = [...currentDemandVals];
@@ -234,7 +232,6 @@ export default function TransportProblemPage() {
            } else break;
       }
 
-      // 3. Метод потенциалов
       let iter = 0;
       let optimal = false;
 
@@ -347,14 +344,14 @@ export default function TransportProblemPage() {
   return (
     <main className="max-w-4xl mx-auto px-4 space-y-6 pb-10">
       
-      {/* Стили для скрытия стрелок инпута */}
+      {/* Стили для скрытия стрелок инпута только для класса no-spinner */}
       <style jsx global>{`
-        input[type=number]::-webkit-inner-spin-button, 
-        input[type=number]::-webkit-outer-spin-button { 
+        .no-spinner::-webkit-inner-spin-button, 
+        .no-spinner::-webkit-outer-spin-button { 
           -webkit-appearance: none; 
           margin: 0; 
         }
-        input[type=number] {
+        .no-spinner {
           -moz-appearance: textfield;
         }
       `}</style>
@@ -382,7 +379,7 @@ export default function TransportProblemPage() {
         {/* Сетка настроек */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             
-            {/* Размеры */}
+            {/* Размеры (стрелки оставлены) */}
             <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">Размерность матрицы</h3>
                 <div className="flex gap-4">
@@ -397,7 +394,7 @@ export default function TransportProblemPage() {
                 </div>
             </div>
 
-            {/* Запасы и Потребности */}
+            {/* Запасы и Потребности (стрелки скрыты) */}
             <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">Ограничения</h3>
                 <div className="space-y-4">
@@ -405,7 +402,7 @@ export default function TransportProblemPage() {
                         <label className="block text-xs font-semibold text-blue-600 mb-1">Запасы поставщиков (a)</label>
                         <div className="flex flex-wrap gap-2">
                             {supply.map((s, i) => (
-                                <input key={i} type="number" value={s} onChange={(e)=>{const n=[...supply]; n[i]=e.target.value; setSupply(n)}} className="w-16 p-1.5 border border-gray-300 rounded text-center text-sm font-medium focus:border-blue-500 outline-none" placeholder={`a${i+1}`} />
+                                <input key={i} type="number" value={s} onChange={(e)=>{const n=[...supply]; n[i]=e.target.value; setSupply(n)}} className="w-16 p-1.5 border border-gray-300 rounded text-center text-sm font-medium focus:border-blue-500 outline-none no-spinner" placeholder={`a${i+1}`} />
                             ))}
                         </div>
                     </div>
@@ -413,7 +410,7 @@ export default function TransportProblemPage() {
                         <label className="block text-xs font-semibold text-green-600 mb-1">Потребности магазинов (b)</label>
                         <div className="flex flex-wrap gap-2">
                             {demand.map((d, i) => (
-                                <input key={i} type="number" value={d} onChange={(e)=>{const n=[...demand]; n[i]=e.target.value; setDemand(n)}} className="w-16 p-1.5 border border-gray-300 rounded text-center text-sm font-medium focus:border-green-500 outline-none" placeholder={`b${i+1}`} />
+                                <input key={i} type="number" value={d} onChange={(e)=>{const n=[...demand]; n[i]=e.target.value; setDemand(n)}} className="w-16 p-1.5 border border-gray-300 rounded text-center text-sm font-medium focus:border-green-500 outline-none no-spinner" placeholder={`b${i+1}`} />
                             ))}
                         </div>
                     </div>
@@ -421,28 +418,28 @@ export default function TransportProblemPage() {
             </div>
         </div>
           
-        {/* Матрица тарифов */}
+        {/* Матрица тарифов (стрелки скрыты, ячейки узкие) */}
         <div className="mt-6">
             <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2">
                 <TbTableOptions/> Матрица тарифов (C)
             </h3>
             <div className="overflow-x-auto border border-gray-200 rounded-lg">
-            <table className="border-collapse min-w-max w-full text-sm">
+            <table className="border-collapse w-auto text-sm">
                 <thead>
                     <tr className="bg-gray-100 border-b">
-                        <th className="p-2 text-left text-gray-400 font-medium w-16">#</th>
+                        <th className="p-2 text-left text-gray-400 font-medium w-12">#</th>
                         {Array(consumers).fill(0).map((_, j) => (
-                            <th key={j} className="p-2 text-center text-gray-500 font-medium">B{j+1}</th>
+                            <th key={j} className="p-2 text-center text-gray-500 font-medium w-12">B{j+1}</th>
                         ))}
                     </tr>
                 </thead>
                 <tbody>
                 {costs.map((row, i) => (
                     <tr key={i} className="border-b last:border-0 hover:bg-gray-50 transition-colors">
-                    <td className="p-2 pl-4 font-bold text-gray-500">A{i+1}</td>
+                    <td className="p-2 pl-3 font-bold text-gray-500">A{i+1}</td>
                     {row.map((c, j) => (
                         <td key={j} className="p-1">
-                        <input type="number" value={c} onChange={(e)=>{const n=costs.map(r=>[...r]); n[i][j]=e.target.value; setCosts(n)}} className="w-full p-2 text-center bg-white border border-gray-200 rounded focus:ring-2 focus:ring-blue-500 outline-none font-medium" />
+                        <input type="number" value={c} onChange={(e)=>{const n=costs.map(r=>[...r]); n[i][j]=e.target.value; setCosts(n)}} className="w-12 p-1.5 text-center bg-white border border-gray-200 rounded focus:ring-2 focus:ring-blue-500 outline-none font-medium no-spinner" />
                         </td>
                     ))}
                     </tr>
@@ -481,7 +478,7 @@ export default function TransportProblemPage() {
                 {/* Таблица */}
                 <div className="overflow-x-auto rounded-lg border border-gray-300 mb-6 shadow-inner bg-gray-50">
                     <div className="grid min-w-max" 
-                        style={{ gridTemplateColumns: `auto repeat(${log.tableau.cells[0].length}, minmax(80px, 1fr)) auto` }}>
+                        style={{ gridTemplateColumns: `auto repeat(${log.tableau.cells[0].length}, minmax(70px, 1fr)) auto` }}>
                         
                         {/* Header: V */}
                         <div className="bg-gray-100 border-r border-b border-gray-300 p-2"></div>
