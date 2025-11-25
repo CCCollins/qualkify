@@ -576,29 +576,17 @@ export default function TransportProblemPage() {
 
       {/* Сдержанный итог */}
       {economy && (
-        <div className="bg-white border border-gray-200 rounded-lg p-6 text-gray-700 shadow-sm mb-12">
+        <div className="bg-white border border-gray-200 rounded-lg p-6 text-gray-700 shadow-sm">
             <h3 className="font-bold text-gray-800 text-lg mb-4 border-b pb-2">Результаты решения</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
                 <div className="space-y-2">
                     <div className="flex justify-between">
-                        <span className="text-gray-500">Начальные затраты (F₀):</span>
-                        <span className="font-mono font-bold">{economy.start}</span>
-                    </div>
-                    <div className="flex justify-between">
                         <span className="text-gray-500">Оптимальные затраты (Fₒₚₜ):</span>
-                        <span className="font-mono font-bold text-green-600">{economy.end}</span>
+                        <span className="font-mono font-bold">{economy.end}</span>
                     </div>
-                </div>
-
-                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                    <div className="text-xs text-gray-500 uppercase font-bold mb-2">Расчет экономии</div>
                     <div className="font-mono text-sm mb-2 text-gray-600">
-                        Э = ({economy.start} - {economy.end}) / {economy.start} × 100%
-                    </div>
-                    <div className="flex items-baseline gap-2">
-                        <span className="text-2xl font-bold text-gray-800">{economy.percent}%</span>
-                        <span className="text-sm text-green-600 font-medium">экономии</span>
+                        Экономия = ({economy.start} - {economy.end}) / {economy.start} × 100% = {economy.percent}%
                     </div>
                 </div>
             </div>
