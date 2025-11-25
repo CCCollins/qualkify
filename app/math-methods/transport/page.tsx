@@ -302,16 +302,19 @@ export default function TransportProblemPage() {
         // Расчет оценок
         let minEstimate = 0;
         let enterI = -1, enterJ = -1;
-        let estimatesLog = "";
+        let estimatesLog = ""; // теперь используется и модифицируется
         
         for (let i = 0; i < suppliers; i++) {
           for (let j = 0; j < consumers; j++) {
             if (!cells[i][j].isBasic) {
               const est = cells[i][j].cost - u[i]! - v[j]!;
+              // собираем поясняющий лог для вывода
+              estimatesLog += `p${i + 1}${j + 1} = ${cells[i][j].cost} - ${toFraction(u[i]!)} - ${toFraction(v[j]!)} = ${toFraction(est)}\n`;
               if (est < minEstimate - 1e-6) {
                 minEstimate = est;
                 enterI = i;
                 enterJ = j;
+                estimatesLog += "  ← минимальная\n";
               }
             }
           }
@@ -329,7 +332,9 @@ export default function TransportProblemPage() {
                 v: [...v],
                 totalCost: currentCost
             },
-            explanation: iteration === 1 ? `Начальный план (F = ${currentCost}).\nПроверка оптимальности.` : `Итерация ${iteration-1}. F = ${currentCost}.`
+            explanation: iteration === 1
+              ? `${initExpl}Начальный план (F = ${currentCost}).\nПроверка оптимальности.\n\n${estimatesLog}`
+              : `Итерация ${iteration-1}. F = ${currentCost}.\n\n${estimatesLog}`
         };
 
         if (minEstimate >= -1e-6) {
