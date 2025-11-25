@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { TbSmartHome, TbTableOptions, TbMath } from 'react-icons/tb';
+import { TbSmartHome, TbTableOptions, TbMath, TbSettings } from 'react-icons/tb';
 
 interface Cell {
   cost: number;
@@ -148,7 +148,6 @@ export default function TransportProblemPage() {
       setError(null);
       
       // 1. Подготовка данных и балансировка
-      // Используем const, так как ссылка на массив не меняется, меняется только содержимое через push
       const currentSupplyVals = supply.map(s => parseFloat(s) || 0);
       const currentDemandVals = demand.map(d => parseFloat(d) || 0);
       const currentCosts = costs.map(row => row.map(c => parseFloat(c) || 0));
@@ -159,20 +158,15 @@ export default function TransportProblemPage() {
       let calcSuppliers = suppliers;
       let calcConsumers = consumers;
       
-      // Автоматическое добавление фиктивного узла
       if (Math.abs(sumS - sumD) > 1e-6) {
           if (sumS > sumD) {
-              // Добавляем фиктивного потребителя (столбец)
               const diff = sumS - sumD;
               currentDemandVals.push(diff);
-              // Добавляем 0 в каждую строку
               currentCosts.forEach(row => row.push(0));
               calcConsumers++;
           } else {
-              // Добавляем фиктивного поставщика (строку)
               const diff = sumD - sumS;
               currentSupplyVals.push(diff);
-              // Добавляем строку нулей
               currentCosts.push(new Array(calcConsumers).fill(0));
               calcSuppliers++;
           }
@@ -180,7 +174,7 @@ export default function TransportProblemPage() {
       
       const logsData: IterationLog[] = [];
       
-      // 2. Начальный план (Минимальная стоимость)
+      // 2. Начальный план (ММС)
       const allocation = Array(calcSuppliers).fill(null).map(() => Array(calcConsumers).fill(0));
       const remS = [...currentSupplyVals];
       const remD = [...currentDemandVals];
@@ -247,7 +241,6 @@ export default function TransportProblemPage() {
       while (iter < 20 && !optimal) {
         iter++;
         
-        // а) Потенциалы
         const u = Array(calcSuppliers).fill(null) as (number|null)[];
         const v = Array(calcConsumers).fill(null) as (number|null)[];
         u[0] = 0;
@@ -265,18 +258,13 @@ export default function TransportProblemPage() {
         for(let k=0; k<calcSuppliers; k++) if(u[k]===null) u[k]=0;
         for(let k=0; k<calcConsumers; k++) if(v[k]===null) v[k]=0;
 
-        // б) Оценки и формирование строки расчетов
         let minP = 0, enterI = -1, enterJ = -1;
         let calculationsText = "";
         
         for(let i=0; i<calcSuppliers; i++) for(let j=0; j<calcConsumers; j++) {
             if(!cells[i][j].isBasic) {
                 const p = cells[i][j].cost - u[i]! - v[j]!;
-                
-                // Формируем строку расчета: p12 = 7 - 0 - 5 = 2
-                // Если добавлены фиктивные, индексы могут быть больше исходных
                 calculationsText += `p${i+1},${j+1} = ${cells[i][j].cost} - (${toFraction(u[i]!)}) - (${toFraction(v[j]!)}) = ${toFraction(p)}\n`;
-
                 if(p < minP - 1e-6) { minP = p; enterI = i; enterJ = j; }
             }
         }
@@ -305,7 +293,6 @@ export default function TransportProblemPage() {
             break;
         }
 
-        // Подготовка пересчета
         currentLog.entering = { r: enterI, c: enterJ, estimate: minP };
         currentLog.explanation = `Вводим клетку (${enterI+1},${enterJ+1}). Оценка: ${toFraction(minP)}`;
         
@@ -334,7 +321,6 @@ export default function TransportProblemPage() {
         
         logsData.push(currentLog); 
 
-        // Применяем изменения
         cells[enterI][enterJ].isBasic = true;
         for (let k = 0; k < path.length - 1; k++) {
             const p = path[k];
@@ -359,126 +345,161 @@ export default function TransportProblemPage() {
   };
 
   return (
-    <main className="max-w-4xl mx-auto px-2 py-6 space-y-6 bg-gray-50 min-h-screen text-sm md:text-base">
+    <main className="max-w-4xl mx-auto px-4 space-y-6 pb-10">
       
+      {/* Стили для скрытия стрелок инпута */}
+      <style jsx global>{`
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+          -webkit-appearance: none; 
+          margin: 0; 
+        }
+        input[type=number] {
+          -moz-appearance: textfield;
+        }
+      `}</style>
+
       <div className="flex justify-center items-center mb-6">
         <Link href="/" className="text-blue-600 hover:text-blue-800 transition" title="Домашняя страница">
           <TbSmartHome className="text-3xl mr-2" />
         </Link>
-        <h1 className="text-xl md:text-3xl font-bold text-center text-gray-800">
-          Транспортная задача
+        <h1 className="text-xl md:text-3xl font-bold text-center">
+          Баланс бюджета
         </h1>
       </div>
 
       {/* Ввод */}
-      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-        <div className="flex justify-between items-center mb-4 border-b pb-2">
-             <h2 className="font-bold text-gray-700 flex items-center gap-2 text-lg">
-                <TbTableOptions className="text-xl"/> Ввод условий
+      <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+        <div className="flex justify-between items-center mb-6 border-b pb-4">
+             <h2 className="font-bold text-gray-800 flex items-center gap-2 text-lg">
+                <TbSettings className="text-xl text-blue-600"/> Параметры задачи
              </h2>
-             <button onClick={calculate} className="bg-blue-600 text-white font-bold py-2 px-6 rounded shadow hover:bg-blue-700 active:scale-95 transition-transform">
+             <button onClick={calculate} className="bg-blue-600 text-white font-bold py-2 px-8 rounded-lg shadow-lg hover:bg-blue-700 active:scale-95 transition-all">
                 Решить
             </button>
         </div>
         
-        <div className="grid grid-cols-2 gap-4 mb-4 max-w-xs">
-          <div>
-            <label className="text-xs font-bold text-gray-500 uppercase">Поставщики (m)</label>
-            <input type="number" min="2" max="8" value={suppliers} onChange={(e)=>handleSupplierChange(+e.target.value||2)} className="w-full mt-1 p-2 border rounded text-center font-bold text-gray-700" />
-          </div>
-          <div>
-            <label className="text-xs font-bold text-gray-500 uppercase">Потребители (n)</label>
-            <input type="number" min="2" max="8" value={consumers} onChange={(e)=>handleConsumerChange(+e.target.value||2)} className="w-full mt-1 p-2 border rounded text-center font-bold text-gray-700" />
-          </div>
-        </div>
+        {/* Сетка настроек */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            
+            {/* Размеры */}
+            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">Размерность матрицы</h3>
+                <div className="flex gap-4">
+                    <div className="flex-1">
+                        <label className="block text-xs font-semibold text-gray-400 mb-1">Поставщики (m)</label>
+                        <input type="number" min="2" max="10" value={suppliers} onChange={(e)=>handleSupplierChange(+e.target.value||2)} className="w-full p-2 border border-gray-300 rounded-md text-center font-bold text-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                    </div>
+                    <div className="flex-1">
+                        <label className="block text-xs font-semibold text-gray-400 mb-1">Потребители (n)</label>
+                        <input type="number" min="2" max="10" value={consumers} onChange={(e)=>handleConsumerChange(+e.target.value||2)} className="w-full p-2 border border-gray-300 rounded-md text-center font-bold text-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                    </div>
+                </div>
+            </div>
 
-        <div className="space-y-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-                <label className="text-xs font-bold text-gray-500 uppercase block mb-1">Запасы (a)</label>
-                <div className="flex flex-wrap gap-2">
-                {supply.map((s, i) => (
-                    <input key={i} type="number" value={s} onChange={(e)=>{const n=[...supply]; n[i]=e.target.value; setSupply(n)}} className="w-14 p-2 border rounded text-center bg-blue-50" placeholder={`a${i+1}`} />
-                ))}
+            {/* Запасы и Потребности */}
+            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">Ограничения</h3>
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-xs font-semibold text-blue-600 mb-1">Запасы поставщиков (a)</label>
+                        <div className="flex flex-wrap gap-2">
+                            {supply.map((s, i) => (
+                                <input key={i} type="number" value={s} onChange={(e)=>{const n=[...supply]; n[i]=e.target.value; setSupply(n)}} className="w-16 p-1.5 border border-gray-300 rounded text-center text-sm font-medium focus:border-blue-500 outline-none" placeholder={`a${i+1}`} />
+                            ))}
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-semibold text-green-600 mb-1">Потребности магазинов (b)</label>
+                        <div className="flex flex-wrap gap-2">
+                            {demand.map((d, i) => (
+                                <input key={i} type="number" value={d} onChange={(e)=>{const n=[...demand]; n[i]=e.target.value; setDemand(n)}} className="w-16 p-1.5 border border-gray-300 rounded text-center text-sm font-medium focus:border-green-500 outline-none" placeholder={`b${i+1}`} />
+                            ))}
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div className="flex-1">
-                <label className="text-xs font-bold text-gray-500 uppercase block mb-1">Потребности (b)</label>
-                <div className="flex flex-wrap gap-2">
-                {demand.map((d, i) => (
-                    <input key={i} type="number" value={d} onChange={(e)=>{const n=[...demand]; n[i]=e.target.value; setDemand(n)}} className="w-14 p-2 border rounded text-center bg-green-50" placeholder={`b${i+1}`} />
-                ))}
-                </div>
-            </div>
-          </div>
+        </div>
           
-          <div className="overflow-x-auto pb-2">
-            <label className="text-xs font-bold text-gray-500 uppercase block mb-2">Тарифы (c)</label>
-            <table className="border-collapse min-w-max">
-              <tbody>
+        {/* Матрица тарифов */}
+        <div className="mt-6">
+            <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2">
+                <TbTableOptions/> Матрица тарифов (C)
+            </h3>
+            <div className="overflow-x-auto border border-gray-200 rounded-lg">
+            <table className="border-collapse min-w-max w-full text-sm">
+                <thead>
+                    <tr className="bg-gray-100 border-b">
+                        <th className="p-2 text-left text-gray-400 font-medium w-16">#</th>
+                        {Array(consumers).fill(0).map((_, j) => (
+                            <th key={j} className="p-2 text-center text-gray-500 font-medium">B{j+1}</th>
+                        ))}
+                    </tr>
+                </thead>
+                <tbody>
                 {costs.map((row, i) => (
-                  <tr key={i}>
-                    <td className="pr-3 py-1 font-bold text-gray-500 text-sm">A{i+1}</td>
+                    <tr key={i} className="border-b last:border-0 hover:bg-gray-50 transition-colors">
+                    <td className="p-2 pl-4 font-bold text-gray-500">A{i+1}</td>
                     {row.map((c, j) => (
-                      <td key={j} className="p-1">
-                        <input type="number" value={c} onChange={(e)=>{const n=costs.map(r=>[...r]); n[i][j]=e.target.value; setCosts(n)}} className="w-16 p-2 text-center border rounded text-gray-800 focus:ring-2 focus:ring-blue-500" />
-                      </td>
+                        <td key={j} className="p-1">
+                        <input type="number" value={c} onChange={(e)=>{const n=costs.map(r=>[...r]); n[i][j]=e.target.value; setCosts(n)}} className="w-full p-2 text-center bg-white border border-gray-200 rounded focus:ring-2 focus:ring-blue-500 outline-none font-medium" />
+                        </td>
                     ))}
-                  </tr>
+                    </tr>
                 ))}
-              </tbody>
+                </tbody>
             </table>
-          </div>
+            </div>
         </div>
       </div>
 
-      {error && <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded shadow">{error}</div>}
+      {error && <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-lg shadow-sm">{error}</div>}
 
       {/* Вывод шагов */}
       {logs && logs.map((log, idx) => {
         return (
-            <div key={idx} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-            <div className={`px-4 py-3 border-b flex flex-col md:flex-row md:justify-between md:items-center ${log.isOptimal ? 'bg-green-100' : 'bg-gray-100'}`}>
-                <div className="flex items-center gap-2">
-                    <span className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold text-white ${log.isOptimal ? 'bg-green-600' : 'bg-gray-600'}`}>
+            <div key={idx} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className={`px-6 py-4 border-b flex flex-col md:flex-row md:justify-between md:items-center ${log.isOptimal ? 'bg-green-50' : 'bg-gray-50'}`}>
+                <div className="flex items-center gap-3">
+                    <span className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold text-white shadow-sm ${log.isOptimal ? 'bg-green-500' : 'bg-gray-600'}`}>
                         {idx + 1}
                     </span>
-                    <span className="font-bold text-gray-800">
+                    <span className="font-bold text-gray-800 text-lg">
                         {log.isOptimal ? "Оптимальный план" : `Итерация ${log.stepNumber}`}
                     </span>
                 </div>
                 
-                <div className="mt-2 md:mt-0 font-mono text-xs md:text-sm bg-white px-3 py-1.5 rounded border shadow-sm w-full md:w-auto overflow-x-auto whitespace-nowrap">
-                <span className="font-bold text-gray-500 mr-2">F =</span> 
-                {log.tableau.costFormula}
+                <div className="mt-3 md:mt-0 font-mono text-sm bg-white px-4 py-2 rounded-lg border shadow-sm text-gray-700 overflow-x-auto">
+                    <span className="font-bold text-gray-400 mr-2">F =</span> 
+                    {log.tableau.costFormula}
                 </div>
             </div>
             
-            <div className="p-4">
-                <p className="text-sm text-gray-600 mb-4 font-medium">{log.explanation}</p>
+            <div className="p-6">
+                <p className="text-gray-600 mb-6 font-medium bg-blue-50/50 p-3 rounded-lg border border-blue-100/50">{log.explanation}</p>
 
                 {/* Таблица */}
-                <div className="overflow-x-auto rounded border border-gray-300 mb-4">
+                <div className="overflow-x-auto rounded-lg border border-gray-300 mb-6 shadow-inner bg-gray-50">
                     <div className="grid min-w-max" 
-                        style={{ gridTemplateColumns: `auto repeat(${log.tableau.cells[0].length}, minmax(70px, 1fr)) auto` }}>
+                        style={{ gridTemplateColumns: `auto repeat(${log.tableau.cells[0].length}, minmax(80px, 1fr)) auto` }}>
                         
                         {/* Header: V */}
-                        <div className="bg-gray-50 border-r border-b p-2"></div>
+                        <div className="bg-gray-100 border-r border-b border-gray-300 p-2"></div>
                         {log.tableau.v.map((val, j) => (
-                            <div key={j} className="bg-gray-50 border-r border-b p-2 text-center text-xs font-mono font-bold text-blue-700">
+                            <div key={j} className="bg-gray-100 border-r border-b border-gray-300 p-2 text-center text-xs font-mono font-bold text-blue-700">
                                 {j >= consumers ? <span className="text-red-500">Фикт</span> : `v${j+1}`}<br/>
-                                ={val !== null ? toFraction(val) : '?'}
+                                <span className="text-gray-500">= {val !== null ? toFraction(val) : '?'}</span>
                             </div>
                         ))}
-                        <div className="bg-gray-100 border-b p-2 text-center text-xs font-bold text-gray-600">Запас</div>
+                        <div className="bg-gray-200 border-b border-gray-300 p-2 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Запас</div>
 
                         {/* Rows */}
                         {log.tableau.cells.map((row, i) => (
                             <React.Fragment key={i}>
                                 {/* U */}
-                                <div className="bg-gray-50 border-r border-b p-2 flex flex-col items-center justify-center text-xs font-mono font-bold text-blue-700 w-20">
+                                <div className="bg-gray-100 border-r border-b border-gray-300 p-2 flex flex-col items-center justify-center text-xs font-mono font-bold text-blue-700 w-20">
                                     {i >= suppliers ? <span className="text-red-500 text-[10px]">Фикт</span> : `u${i+1}`}<br/>
-                                    ={log.tableau.u[i] !== null ? toFraction(log.tableau.u[i]!) : '?'}
+                                    <span className="text-gray-500">= {log.tableau.u[i] !== null ? toFraction(log.tableau.u[i]!) : '?'}</span>
                                 </div>
 
                                 {/* Cells */}
@@ -491,58 +512,64 @@ export default function TransportProblemPage() {
                                     
                                     return (
                                         <div key={j} className={`
-                                            relative h-14 border-r border-b flex flex-col items-center justify-center
-                                            ${cell.isBasic ? 'bg-green-50' : 'bg-white'}
-                                            ${isEntering ? 'bg-yellow-100 ring-2 ring-inset ring-yellow-400 z-10' : ''}
-                                            ${isLeaving ? 'bg-red-50 opacity-70' : ''}
+                                            relative h-16 border-r border-b border-gray-300 flex flex-col items-center justify-center transition-colors
+                                            ${cell.isBasic ? 'bg-green-50/50' : 'bg-white'}
+                                            ${isEntering ? 'bg-yellow-100 ring-inset ring-4 ring-yellow-200 z-10' : ''}
+                                            ${isLeaving ? 'bg-red-50 opacity-60' : ''}
                                         `}>
-                                            <div className="absolute top-0 right-0 border-l border-b bg-gray-50 px-1 text-[10px] text-gray-500">
+                                            <div className="absolute top-0 right-0 border-l border-b border-gray-200 bg-gray-50 px-1.5 py-0.5 text-[10px] font-bold text-gray-400">
                                                 {cell.cost}
                                             </div>
 
-                                            <span className={`font-bold text-sm ${cell.isBasic ? 'text-gray-900' : 'text-transparent'}`}>
+                                            <span className={`font-bold text-base ${cell.isBasic ? 'text-gray-800' : 'text-transparent'}`}>
                                                 {formatValue(cell.value, cell.isBasic)}
                                             </span>
 
-                                            {/* Оценка внутри клетки (опционально, дублирует текст) */}
                                             {!cell.isBasic && !log.isOptimal && (
-                                                <div className={`absolute bottom-0 left-1 text-[10px] font-bold ${p_ij < -1e-6 ? 'text-red-500' : 'text-gray-300'}`}>
+                                                <div className={`absolute bottom-0 left-1 text-[10px] font-bold ${p_ij < -1e-6 ? 'text-red-500 bg-red-50 px-1 rounded' : 'text-gray-300'}`}>
                                                     {p_ij < -1e-6 ? `p=${toFraction(p_ij)}` : ''}
                                                 </div>
                                             )}
                                         </div>
                                     );
                                 })}
-                                <div className="bg-white border-b p-2 flex items-center justify-center text-xs font-bold text-gray-500">
+                                <div className="bg-white border-b border-gray-300 p-2 flex items-center justify-center text-sm font-bold text-gray-500">
                                     {log.tableau.supply[i]}
                                 </div>
                             </React.Fragment>
                         ))}
 
-                        <div className="bg-gray-100 border-r p-2 text-center text-xs font-bold text-gray-600">Потр.</div>
+                        <div className="bg-gray-200 border-r border-gray-300 p-2 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Потр.</div>
                         {log.tableau.demand.map((d, j) => (
-                            <div key={j} className="bg-white border-r p-2 text-center text-xs font-bold text-gray-500">{d}</div>
+                            <div key={j} className="bg-white border-r border-gray-300 p-2 text-center text-sm font-bold text-gray-500">{d}</div>
                         ))}
-                        <div className="bg-gray-50"></div>
+                        <div className="bg-gray-100"></div>
                     </div>
                 </div>
 
                 {/* Блок с расчетами p_ij */}
-                <div className="mb-4 bg-gray-50 p-3 rounded border border-gray-200">
-                    <h4 className="text-xs font-bold text-gray-500 uppercase mb-2 flex items-center gap-2">
-                        <TbMath/> Расчет оценок свободных клеток
+                <div className="mb-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <h4 className="text-xs font-bold text-gray-500 uppercase mb-3 flex items-center gap-2">
+                        <TbMath className="text-lg"/> Расчет оценок свободных клеток
                     </h4>
-                    <div className="text-xs font-mono text-gray-700 whitespace-pre-wrap leading-relaxed">
+                    <div className="text-xs font-mono text-gray-700 whitespace-pre-wrap leading-relaxed pl-2 border-l-2 border-gray-300">
                         {log.calculations || "Все клетки базисные."}
                     </div>
                 </div>
 
                 {/* Инфо о цикле */}
                 {!log.isOptimal && log.cycle && (
-                    <div className="text-xs md:text-sm bg-blue-50 p-3 rounded-lg border border-blue-100 text-gray-700">
-                        <div className="font-semibold text-blue-800 mb-1">Пересчет:</div>
-                        <div>Ввод: ({log.entering!.r+1}, {log.entering!.c+1}), θ = {log.theta}</div>
-                        <div className="font-mono text-xs mt-1">{log.cycle}</div>
+                    <div className="text-sm bg-blue-50 p-4 rounded-lg border border-blue-100 text-gray-700 shadow-sm">
+                        <div className="font-bold text-blue-800 mb-2 flex items-center gap-2">
+                            <span>🔄 Пересчет плана</span>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                             <div><span className="font-semibold">Ввод клетки:</span> ({log.entering!.r+1}, {log.entering!.c+1})</div>
+                             <div><span className="font-semibold">Сдвиг (θ):</span> {log.theta}</div>
+                             <div className="md:col-span-2 font-mono text-xs bg-white p-2 rounded border border-blue-100 mt-1 overflow-x-auto">
+                                {log.cycle}
+                             </div>
+                        </div>
                     </div>
                 )}
             </div>
@@ -552,13 +579,31 @@ export default function TransportProblemPage() {
 
       {/* Сдержанный итог */}
       {economy && (
-        <div className="bg-gray-50 border border-gray-300 rounded p-4 text-sm text-gray-700 flex justify-between items-center mb-10">
-            <div>
-                <span className="font-bold">Итог: </span>
-                Начальная F = {economy.start}, Оптимальная F = {economy.end}
-            </div>
-            <div className="bg-white px-2 py-1 rounded border text-xs font-mono">
-                Экономия: {economy.percent}%
+        <div className="bg-white border border-gray-200 rounded-lg p-6 text-gray-700 shadow-sm mb-12">
+            <h3 className="font-bold text-gray-800 text-lg mb-4 border-b pb-2">Результаты решения</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                <div className="space-y-2">
+                    <div className="flex justify-between">
+                        <span className="text-gray-500">Начальные затраты (F₀):</span>
+                        <span className="font-mono font-bold">{economy.start}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-gray-500">Оптимальные затраты (Fₒₚₜ):</span>
+                        <span className="font-mono font-bold text-green-600">{economy.end}</span>
+                    </div>
+                </div>
+
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <div className="text-xs text-gray-500 uppercase font-bold mb-2">Расчет экономии</div>
+                    <div className="font-mono text-sm mb-2 text-gray-600">
+                        Э = ({economy.start} - {economy.end}) / {economy.start} × 100%
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                        <span className="text-2xl font-bold text-gray-800">{economy.percent}%</span>
+                        <span className="text-sm text-green-600 font-medium">экономии</span>
+                    </div>
+                </div>
             </div>
         </div>
       )}
