@@ -198,7 +198,9 @@ export default function TransportProblemPage() {
         potentialCalc += `u₁ = 0 (приняли за константу)\n\n`;
         potentialCalc += `Для базисных клеток: uᵢ + vⱼ = cᵢⱼ\n\n`;
         
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         for (let i = 0; i < suppliers; i++) {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           for (let j = 0; j < consumers; j++) {
             if (currentCells[i][j].isBasic) {
               potentialCalc += `x${i + 1}${j + 1}: u${i + 1} + v${j + 1} = ${currentCells[i][j].cost}`;
