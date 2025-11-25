@@ -338,7 +338,7 @@ export default function TransportProblemPage() {
         for (let i = 0; i < suppliers; i++) if (u[i] === null) u[i] = 0;
         for (let j = 0; j < consumers; j++) if (v[j] === null) v[j] = 0;
         
-        let iterLog = `\n--- Итерация ${iteration} ---\nПотенциалы: u=[${u}], v=[${v}]\n`;
+        const iterLog = `\n--- Итерация ${iteration} ---\nПотенциалы: u=[${u}], v=[${v}]\n`;
         
         // б) Оценки свободных клеток
         let minEstimate = 0;
