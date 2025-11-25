@@ -25,7 +25,7 @@ interface IterationLog {
   isOptimal: boolean;
   tableau: Tableau;
   explanation: string;
-  calculations: string; // Поле для формул p_ij
+  calculations: string;
   entering?: { r: number, c: number, estimate: number };
   leaving?: { r: number, c: number, val: number };
   cycle?: string;
@@ -148,10 +148,10 @@ export default function TransportProblemPage() {
       setError(null);
       
       // 1. Подготовка данных и балансировка
-      let currentSupplyVals = supply.map(s => parseFloat(s) || 0);
-      let currentDemandVals = demand.map(d => parseFloat(d) || 0);
-      // Глубокая копия матрицы стоимостей
-      let currentCosts = costs.map(row => row.map(c => parseFloat(c) || 0));
+      // Используем const, так как ссылка на массив не меняется, меняется только содержимое через push
+      const currentSupplyVals = supply.map(s => parseFloat(s) || 0);
+      const currentDemandVals = demand.map(d => parseFloat(d) || 0);
+      const currentCosts = costs.map(row => row.map(c => parseFloat(c) || 0));
       
       const sumS = currentSupplyVals.reduce((a, b) => a + b, 0);
       const sumD = currentDemandVals.reduce((a, b) => a + b, 0);
@@ -436,10 +436,6 @@ export default function TransportProblemPage() {
 
       {/* Вывод шагов */}
       {logs && logs.map((log, idx) => {
-        // Определяем, есть ли фиктивные узлы для отображения в таблице
-        const hasDummyRow = log.tableau.cells.length > suppliers;
-        const hasDummyCol = log.tableau.cells[0].length > consumers;
-
         return (
             <div key={idx} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             <div className={`px-4 py-3 border-b flex flex-col md:flex-row md:justify-between md:items-center ${log.isOptimal ? 'bg-green-100' : 'bg-gray-100'}`}>
