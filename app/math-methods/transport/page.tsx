@@ -364,7 +364,7 @@ export default function TransportProblemPage() {
           <TbSmartHome className="text-3xl mr-2" />
         </Link>
         <h1 className="text-xl md:text-3xl font-bold text-center">
-          Баланс бюджета
+          Транспортная задача
         </h1>
       </div>
 
