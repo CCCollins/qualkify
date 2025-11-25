@@ -198,9 +198,7 @@ export default function TransportProblemPage() {
         potentialCalc += `u₁ = 0 (приняли за константу)\n\n`;
         potentialCalc += `Для базисных клеток: uᵢ + vⱼ = cᵢⱼ\n\n`;
         
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         for (let i = 0; i < suppliers; i++) {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           for (let j = 0; j < consumers; j++) {
             if (currentCells[i][j].isBasic) {
               potentialCalc += `x${i + 1}${j + 1}: u${i + 1} + v${j + 1} = ${currentCells[i][j].cost}`;
@@ -262,11 +260,16 @@ export default function TransportProblemPage() {
         steps[steps.length - 1].explanation += `\nСтроим цикл для клетки (${minI + 1}, ${minJ + 1})...\n`;
         
         // Упрощенный пересчет (для демонстрации)
-        const theta = Math.min(
-          ...currentCells.map((row, i) => 
-            row.map((cell, j) => cell.isBasic && cell.value > 0 ? cell.value : Infinity)
-          ).flat()
-        );
+        const basicValues: number[] = [];
+        for (let i = 0; i < suppliers; i++) {
+          for (let j = 0; j < consumers; j++) {
+            if (currentCells[i][j].isBasic && currentCells[i][j].value > 0) {
+              basicValues.push(currentCells[i][j].value);
+            }
+          }
+        }
+        
+        const theta = basicValues.length > 0 ? Math.min(...basicValues) : Infinity;
         
         if (theta < Infinity && theta > 0) {
           currentCells[minI][minJ].value = theta;
