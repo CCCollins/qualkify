@@ -166,7 +166,7 @@ export default function TransportProblemPage() {
       
       // Метод потенциалов
       let iteration = 0;
-      let currentCells = cells.map(row => row.map(cell => ({ ...cell })));
+      const currentCells = cells.map(row => row.map(cell => ({ ...cell })));
       
       while (iteration < 20) {
         iteration++;
