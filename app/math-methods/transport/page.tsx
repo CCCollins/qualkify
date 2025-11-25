@@ -342,7 +342,7 @@ export default function TransportProblemPage() {
   };
 
   return (
-    <main className="max-w-4xl mx-auto px-4 space-y-6 pb-10">
+    <main className="max-w-6xl mx-auto px-4 space-y-6">
       
       {/* Стили для скрытия стрелок инпута только для класса no-spinner */}
       <style jsx global>{`
