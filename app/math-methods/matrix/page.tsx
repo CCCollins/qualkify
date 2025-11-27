@@ -184,7 +184,7 @@ export default function MatrixGamePage() {
                   fRow: [...fRow], 
                   pivot: isOptimal ? undefined : {r: pRow, c: pCol} 
               },
-              desc: isOptimal ? "Оптимальное решение найдено (все оценки F ≥ 0)." : `Вводим ${colHeaders[pCol]}, выводим ${rowHeaders[pRow]}.`,
+              desc: isOptimal ? "Оптимальное решение" : `Ввод ${colHeaders[pCol]}, вывод ${rowHeaders[pRow]}`,
               calculations: iter === 0 ? initLogs : nextLogs
           });
 
@@ -478,7 +478,7 @@ export default function MatrixGamePage() {
   };
 
   return (
-    <main className="max-w-4xl mx-auto px-4 space-y-6 pb-10">
+    <main className="max-w-4xl mx-auto px-4 space-y-6">
       <div className="flex justify-center items-center mb-6">
         <Link href="/" className="text-blue-600 hover:text-blue-800 transition" title="Домашняя страница">
           <TbSmartHome className="text-3xl mr-2" />
@@ -572,7 +572,7 @@ export default function MatrixGamePage() {
                                 {step.simplexSteps.map((sst, sIdx) => (
                                     <div key={sIdx} className="border rounded-lg overflow-hidden shadow-sm">
                                         <div className="bg-gray-50 px-4 py-2 text-xs font-bold text-gray-600 border-b flex justify-between items-center">
-                                            <span className="bg-white px-2 py-0.5 rounded border">Итерация {sIdx}</span>
+                                            <span className="bg-white px-2 py-0.5 rounded border">{sIdx}</span>
                                             <span className="truncate ml-2" title={sst.desc}>{sst.desc}</span>
                                         </div>
                                         <div className="overflow-x-auto">
