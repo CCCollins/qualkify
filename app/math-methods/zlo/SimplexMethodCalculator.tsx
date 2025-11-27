@@ -362,11 +362,20 @@ export default function SimplexMethodCalculator() {
           }
         }
 
+        // --- ГЕНЕРАЦИЯ ЛОГОВ ПЕРЕХОДА (ДЛЯ СЛЕДУЮЩЕГО ШАГА) ---
+        // Создаем "будущие" имена переменных для логов, чтобы координаты совпадали с таблицей,
+        // которую увидит пользователь (где переменные уже поменялись местами).
         transitionLogs = [];
         const pivotEl = currMatrix[pivotRow][pivotCol];
         const fLabel = phase === 1 ? "F" : "f";
         const enteringVar = currColVars[pivotCol];
         const leavingVar = currRowVars[pivotRow];
+
+        // Симуляция смены базиса для логов
+        const nextRowVars = [...currRowVars];
+        nextRowVars[pivotRow] = enteringVar; // Строка станет enteringVar
+        const nextColVars = [...currColVars];
+        nextColVars[pivotCol] = leavingVar; // Столбец станет leavingVar
 
         transitionLogs.push(`Разрешающий элемент (RE) = ${pivotEl}`);
         transitionLogs.push(`Строка: ${leavingVar}, Столбец: ${enteringVar}`);
@@ -374,7 +383,8 @@ export default function SimplexMethodCalculator() {
         const nextMatrix = currMatrix.map(r => [...r]);
         const nextB = [...currB];
 
-        transitionLogs.push(`--- 1. Разрешающая строка (станет строкой '${enteringVar}') ---`);
+        // 1. Ведущая строка
+        transitionLogs.push(`--- 1. Разрешающая строка (станет строкой '${nextRowVars[pivotRow]}') ---`);
         transitionLogs.push(`Формула: a_new = a_old / RE`);
         
         nextMatrix[pivotRow][pivotCol] = new Fraction(1).div(pivotEl);
@@ -384,22 +394,26 @@ export default function SimplexMethodCalculator() {
           if (j !== pivotCol) {
             const oldVal = currMatrix[pivotRow][j];
             nextMatrix[pivotRow][j] = oldVal.div(pivotEl);
-            transitionLogs.push(`[${enteringVar}, ${currColVars[j]}]: ${oldVal} / ${pivotEl} = ${nextMatrix[pivotRow][j]}`);
+            // Используем nextColVars для координат
+            transitionLogs.push(`[${nextRowVars[pivotRow]}, ${nextColVars[j]}]: ${oldVal} / ${pivotEl} = ${nextMatrix[pivotRow][j]}`);
           }
         }
         nextB[pivotRow] = currB[pivotRow].div(pivotEl);
-        transitionLogs.push(`[${enteringVar}, b]: ${currB[pivotRow]} / ${pivotEl} = ${nextB[pivotRow]}`);
+        transitionLogs.push(`[${nextRowVars[pivotRow]}, b]: ${currB[pivotRow]} / ${pivotEl} = ${nextB[pivotRow]}`);
 
-        transitionLogs.push(`--- 2. Разрешающий столбец (станет столбцом '${leavingVar}') ---`);
+        // 2. Разрешающий столбец
+        transitionLogs.push(`--- 2. Разрешающий столбец (станет столбцом '${nextColVars[pivotCol]}') ---`);
         transitionLogs.push(`Формула: a_new = -a_old / RE`);
         for (let i = 0; i < currRowVars.length; i++) {
           if (i !== pivotRow) {
             const oldVal = currMatrix[i][pivotCol];
             nextMatrix[i][pivotCol] = oldVal.div(pivotEl).neg();
-            transitionLogs.push(`[${currRowVars[i]}, ${leavingVar}]: -(${oldVal}) / ${pivotEl} = ${nextMatrix[i][pivotCol]}`);
+            // Используем nextRowVars для координат
+            transitionLogs.push(`[${nextRowVars[i]}, ${nextColVars[pivotCol]}]: -(${oldVal}) / ${pivotEl} = ${nextMatrix[i][pivotCol]}`);
           }
         }
 
+        // 3. Остальные
         transitionLogs.push(`--- 3. Остальные элементы (Правило прямоугольника) ---`);
         transitionLogs.push(`Формула: a_new = a_old - (RowElem * ColElem) / RE`);
         
@@ -409,24 +423,29 @@ export default function SimplexMethodCalculator() {
             if (j === pivotCol) continue;
             
             const oldVal = currMatrix[i][j];
-            const rowEl = currMatrix[i][pivotCol];
-            const colEl = currMatrix[pivotRow][j];
+            const rowEl = currMatrix[i][pivotCol]; // элемент в разрешающем столбце
+            const colEl = currMatrix[pivotRow][j]; // элемент в разрешающей строке
             const rect = rowEl.mul(colEl).div(pivotEl);
             nextMatrix[i][j] = oldVal.sub(rect);
-            transitionLogs.push(`[${currRowVars[i]}, ${currColVars[j]}]: ${oldVal} - (${rowEl}·${colEl})/${pivotEl} = ${nextMatrix[i][j]}`);
+            
+            // Используем "будущие" координаты
+            transitionLogs.push(`[${nextRowVars[i]}, ${nextColVars[j]}]: ${oldVal} - (${rowEl}·${colEl})/${pivotEl} = ${nextMatrix[i][j]}`);
           }
+          // b column
           const oldB = currB[i];
           const rowEl = currMatrix[i][pivotCol];
           const colEl = currB[pivotRow];
           const rect = rowEl.mul(colEl).div(pivotEl);
           nextB[i] = oldB.sub(rect);
-          transitionLogs.push(`[${currRowVars[i]}, b]: ${oldB} - (${rowEl}·${colEl})/${pivotEl} = ${nextB[i]}`);
+          transitionLogs.push(`[${nextRowVars[i]}, b]: ${oldB} - (${rowEl}·${colEl})/${pivotEl} = ${nextB[i]}`);
         }
 
+        // 4. Пересчет F
         transitionLogs.push(`--- 4. Строка оценок ${fLabel} (Правило прямоугольника) ---`);
         const fPivot = fRow[pivotCol];
+        
         const newFPivotCol = fPivot.div(pivotEl).neg();
-        transitionLogs.push(`${fLabel}(${leavingVar}): -(${fPivot}) / ${pivotEl} = ${newFPivotCol}`);
+        transitionLogs.push(`${fLabel}(${nextColVars[pivotCol]}): -(${fPivot}) / ${pivotEl} = ${newFPivotCol}`);
 
         for (let j = 0; j < currColVars.length; j++) {
             if (j !== pivotCol) {
@@ -434,7 +453,7 @@ export default function SimplexMethodCalculator() {
                 const colEl = currMatrix[pivotRow][j]; 
                 const rect = fPivot.mul(colEl).div(pivotEl);
                 const newF = oldF.sub(rect);
-                transitionLogs.push(`${fLabel}(${currColVars[j]}): ${oldF} - (${fPivot}·${colEl})/${pivotEl} = ${newF}`);
+                transitionLogs.push(`${fLabel}(${nextColVars[j]}): ${oldF} - (${fPivot}·${colEl})/${pivotEl} = ${newF}`);
             }
         }
         const oldFVal = fVal;
@@ -443,6 +462,7 @@ export default function SimplexMethodCalculator() {
         const newFVal = oldFVal.sub(rectF);
         transitionLogs.push(`${fLabel}(b): ${oldFVal} - (${fPivot}·${bEl})/${pivotEl} = ${newFVal}`);
 
+        // Swap vars actually
         currColVars[pivotCol] = leavingVar;
         currRowVars[pivotRow] = enteringVar;
 
@@ -579,7 +599,7 @@ export default function SimplexMethodCalculator() {
                     <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs font-mono text-slate-600 space-y-1.5 max-h-80 overflow-y-auto shadow-inner">
                         {step.calculations.length > 0 
                             ? step.calculations.map((line, i) => (
-                                <div key={i} className={`pb-1 ${line.startsWith("---") || line.startsWith("Разрешающий") || line.startsWith("Расчет") ? "font-bold text-blue-700 pt-2 border-b border-slate-200 mb-1" : "border-b border-slate-100 last:border-0"}`}>
+                                <div key={i} className={`pb-1 ${line.startsWith("---") || line.startsWith("Разрешающий") || line.startsWith("Расчет") || line.startsWith("Формула") ? "font-bold text-blue-700 pt-2 border-b border-slate-200 mb-1" : "border-b border-slate-100 last:border-0"}`}>
                                     {line.replace("---", "").trim()}
                                 </div>
                             ))
