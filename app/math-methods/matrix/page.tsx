@@ -471,21 +471,22 @@ export default function MatrixGamePage() {
         </h1>
       </div>
 
-      <div className="bg-white p-6 rounded-xl shadow-lg border border-blue-100 mb-8">
-        <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-100">
+      <div className="bg-white p-4 md:p-6 rounded-xl shadow-lg border border-blue-100 mb-8">
+        <div className="flex flex-col md:flex-row justify-between items-center mb-4 pb-4 border-b border-gray-100 gap-4">
             <div className="flex gap-4">
                 <input type="number" value={rows} onChange={e => handleResize(+e.target.value, cols)} className="w-16 p-2 border rounded text-center font-bold"/>
                 <span className="self-center text-gray-400">x</span>
                 <input type="number" value={cols} onChange={e => handleResize(rows, +e.target.value)} className="w-16 p-2 border rounded text-center font-bold"/>
             </div>
-            <button onClick={solve} className="bg-blue-600 hover:bg-blue-700 text-white w-12 h-12 rounded-full shadow-md flex items-center justify-center transition-transform active:scale-95">
+            <button onClick={solve} className="bg-blue-600 hover:bg-blue-700 text-white w-full md:w-12 h-12 rounded-full shadow-md flex items-center justify-center transition-transform active:scale-95">
+                <span className="md:hidden font-bold mr-2">Решить</span>
                 <TbArrowRight className="text-xl"/>
             </button>
         </div>
 
-        <div className="overflow-x-auto">
-            <div className="inline-block border rounded-lg overflow-hidden">
-                <div className="grid" style={{ gridTemplateColumns: `40px repeat(${cols}, 70px)` }}>
+        <div className="overflow-x-auto -mx-4 md:mx-0 px-4 md:px-0">
+            <div className="inline-block border rounded-lg overflow-hidden min-w-min">
+                <div className="grid" style={{ gridTemplateColumns: `40px repeat(${cols}, minmax(60px, 70px))` }}>
                     <div className="bg-gray-50 border-r border-b"></div>
                     {Array(cols).fill(0).map((_, j) => (
                         <div key={j} className="bg-gray-50 p-2 text-center text-xs font-bold text-gray-500 border-b border-r last:border-r-0">B{j+1}</div>
@@ -512,31 +513,33 @@ export default function MatrixGamePage() {
             {result.steps.map((step, idx) => (
                 <div key={idx} className="bg-white shadow rounded-xl overflow-hidden border border-gray-100">
                     <div className="bg-gray-50 px-6 py-3 border-b font-bold text-gray-700 flex items-center gap-3">
-                        <span className="bg-blue-100 text-blue-700 w-6 h-6 flex items-center justify-center rounded-full text-xs">{idx+1}</span>
-                        {step.title}
+                        <span className="bg-blue-100 text-blue-700 w-6 h-6 flex items-center justify-center rounded-full text-xs shrink-0">{idx+1}</span>
+                        <span className="truncate">{step.title}</span>
                     </div>
-                    <div className="p-6">
+                    <div className="p-4 md:p-6">
                         <p className="text-sm text-gray-600 mb-6 whitespace-pre-line">{step.desc}</p>
                         
                         {/* Обычная матрица */}
                         {step.matrix && !step.simplexSteps && !step.math && (
-                            <div className="border rounded-lg overflow-hidden inline-block shadow-sm">
-                                <div className="grid" style={{ gridTemplateColumns: `auto repeat(${step.matrix[0].length}, minmax(50px, auto))` }}>
-                                    <div className="bg-gray-100"></div>
-                                    {step.colLabels?.map((l, j) => <div key={j} className="bg-gray-100 p-2 text-xs font-bold text-center border-l border-white">{l}</div>)}
-                                    {step.matrix.map((row, i) => (
-                                        <React.Fragment key={i}>
-                                            <div className="bg-gray-100 p-2 text-xs font-bold border-t border-white flex items-center justify-center">{step.rowLabels?.[i]}</div>
-                                            {row.map((val, j) => {
-                                                const hl = step.highlight?.find(h => h.r === i && h.c === j);
-                                                let bg = "bg-white";
-                                                if (hl?.type === 'remove') bg = "bg-gray-200 text-gray-400 decoration-line-through";
-                                                else if (hl?.type === 'min') bg = "bg-blue-100";
-                                                else if (hl?.type === 'max') bg = "bg-red-100";
-                                                return <div key={j} className={`p-2 text-center border-t border-l border-gray-100 text-sm ${bg}`}>{val.toString()}</div>;
-                                            })}
-                                        </React.Fragment>
-                                    ))}
+                            <div className="overflow-x-auto -mx-4 md:mx-0 px-4 md:px-0">
+                                <div className="border rounded-lg overflow-hidden inline-block shadow-sm min-w-min">
+                                    <div className="grid" style={{ gridTemplateColumns: `auto repeat(${step.matrix[0].length}, minmax(50px, auto))` }}>
+                                        <div className="bg-gray-100"></div>
+                                        {step.colLabels?.map((l, j) => <div key={j} className="bg-gray-100 p-2 text-xs font-bold text-center border-l border-white">{l}</div>)}
+                                        {step.matrix.map((row, i) => (
+                                            <React.Fragment key={i}>
+                                                <div className="bg-gray-100 p-2 text-xs font-bold border-t border-white flex items-center justify-center">{step.rowLabels?.[i]}</div>
+                                                {row.map((val, j) => {
+                                                    const hl = step.highlight?.find(h => h.r === i && h.c === j);
+                                                    let bg = "bg-white";
+                                                    if (hl?.type === 'remove') bg = "bg-gray-200 text-gray-400 decoration-line-through";
+                                                    else if (hl?.type === 'min') bg = "bg-blue-100";
+                                                    else if (hl?.type === 'max') bg = "bg-red-100";
+                                                    return <div key={j} className={`p-2 text-center border-t border-l border-gray-100 text-sm ${bg}`}>{val.toString()}</div>;
+                                                })}
+                                            </React.Fragment>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -556,7 +559,7 @@ export default function MatrixGamePage() {
                                             <span className="truncate ml-2" title={sst.desc}>{sst.desc}</span>
                                         </div>
                                         <div className="overflow-x-auto">
-                                            <table className="w-full text-center text-xs font-mono">
+                                            <table className="w-full text-center text-xs font-mono min-w-[300px]">
                                                 <thead>
                                                     <tr className="bg-white text-gray-500 border-b">
                                                         <th className="p-1.5 border-r">Б</th>
@@ -585,11 +588,15 @@ export default function MatrixGamePage() {
                                         </div>
                                         
                                         <details className="group border-t border-gray-100">
-                                            <summary className="bg-gray-50/50 p-2 text-[10px] text-blue-600 font-bold cursor-pointer uppercase flex items-center justify-center gap-1 hover:bg-gray-100 transition">
+                                            <summary className="flex items-center gap-2 cursor-pointer text-xs font-bold text-gray-400 hover:text-blue-600 uppercase tracking-wider transition-colors select-none p-2 justify-center hover:bg-gray-50">
                                                 <TbCalculator/> Расчеты <TbChevronDown className="group-open:rotate-180 transition"/>
                                             </summary>
-                                            <div className="p-3 bg-white text-[10px] font-mono text-gray-500 max-h-40 overflow-y-auto space-y-1">
-                                                {sst.calculations.map((c, i) => <div key={i} className={c.includes("---") ? "font-bold text-gray-700 pt-1" : ""}>{c}</div>)}
+                                            <div className="p-4 bg-slate-50 border-t border-slate-100 text-xs font-mono text-slate-600 space-y-1.5 max-h-60 overflow-y-auto shadow-inner">
+                                                {sst.calculations.map((line, i) => (
+                                                    <div key={i} className={`pb-1 ${line.startsWith("---") || line.includes("RE") || line.startsWith("Разрешающий") ? "font-bold text-blue-700 pt-2 border-b border-slate-200 mb-1" : "border-b border-slate-100 last:border-0"}`}>
+                                                        {line.replace("---", "").trim()}
+                                                    </div>
+                                                ))}
                                             </div>
                                         </details>
                                     </div>
@@ -600,7 +607,7 @@ export default function MatrixGamePage() {
 
                         {/* Аналитический вывод */}
                         {!step.simplexSteps && step.math && (
-                            <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 text-sm font-mono text-slate-800 w-full">
+                            <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 text-sm font-mono text-slate-800 w-full overflow-x-auto">
                                 {step.math}
                             </div>
                         )}
