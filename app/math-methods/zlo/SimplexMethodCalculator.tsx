@@ -92,7 +92,7 @@ const parseEquation = (eq: string): Record<string, number> => {
   terms.forEach(term => {
     const match = term.match(/^(-?\d*\.?\d*)?([a-zA-Z]+[0-9]*)?$/);
     if (match) {
-      const [_, numPart, varPart] = match;
+      const [, numPart, varPart] = match;
       let val = 1;
       if (numPart === "-" || numPart === "-1") val = -1;
       else if (numPart && numPart !== "+") val = parseFloat(numPart);
@@ -118,7 +118,7 @@ export default function SimplexMethodCalculator() {
 
   const addConstraint = () => setConstraints([...constraints, { id: Date.now(), value: "", type: "<=" }]);
   const removeConstraint = (id: number) => setConstraints(constraints.filter(c => c.id !== id));
-  const updateConstraint = (id: number, field: keyof ConstraintInput, val: any) => 
+  const updateConstraint = (id: number, field: keyof ConstraintInput, val: string | number | ConstraintType) => 
     setConstraints(constraints.map(c => c.id === id ? { ...c, [field]: val } : c));
 
   const calculate = () => {
@@ -152,10 +152,10 @@ export default function SimplexMethodCalculator() {
 
       const sortedVars = Array.from(decisionVars).sort((a, b) => a.localeCompare(b, undefined, {numeric: true}));
 
-      let colVars: string[] = [...sortedVars];
-      let rowVars: string[] = [];
-      let matrix: Fraction[][] = [];
-      let bCol: Fraction[] = [];
+      const colVars: string[] = [...sortedVars];
+      const rowVars: string[] = [];
+      const matrix: Fraction[][] = [];
+      const bCol: Fraction[] = [];
 
       let uCount = 0, wCount = 0;
 
@@ -243,7 +243,7 @@ export default function SimplexMethodCalculator() {
       
       let currMatrix = matrix.map(r => r.map(c => c));
       let currB = bCol.map(c => c);
-      let currRowVars = [...rowVars];
+      const currRowVars = [...rowVars];
       let currColVars = [...colVars];
       let transitionLogs: string[] = []; 
 
@@ -279,7 +279,7 @@ export default function SimplexMethodCalculator() {
 
         const isOptimal = pivotCol === -1;
         let pivotRow = -1;
-        let ratios: (string|null)[] = new Array(currMatrix.length).fill(null);
+        const ratios: (string|null)[] = new Array(currMatrix.length).fill(null);
 
         if (!isOptimal) {
           let minRatio = Infinity;

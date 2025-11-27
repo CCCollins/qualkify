@@ -59,8 +59,8 @@ class Fraction {
 
 // --- Типы ---
 interface SimplexTable {
-    colHeaders: string[]; // Исправлено с colVars
-    rowHeaders: string[]; // Исправлено с rowVars
+    colHeaders: string[];
+    rowHeaders: string[];
     matrix: Fraction[][];
     b: Fraction[];
     fRow: Fraction[];
@@ -127,8 +127,8 @@ export default function MatrixGamePage() {
       const m = matA.length;
       const n = matA[0].length;
       
-      let colHeaders = Array(n).fill(0).map((_, i) => `y${i+1}`);
-      let rowHeaders = Array(m).fill(0).map((_, i) => `u${i+1}`);
+      const colHeaders = Array(n).fill(0).map((_, i) => `y${i+1}`);
+      const rowHeaders = Array(m).fill(0).map((_, i) => `u${i+1}`);
       
       let matrix = matA.map(row => row.map(v => v));
       let b = Array(m).fill(new Fraction(1));
@@ -369,8 +369,8 @@ export default function MatrixGamePage() {
 
       // 3. Решение
       let V_final: Fraction;
-      let P_res = Array(rows).fill("0");
-      let Q_res = Array(cols).fill("0");
+      const P_res = Array(rows).fill("0");
+      const Q_res = Array(cols).fill("0");
 
       if (mat.length === 2 && mat[0].length === 2) {
           const a11 = mat[0][0], a12 = mat[0][1];
