@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { TbSmartHome, TbTableOptions, TbMath, TbSettings, TbCheck, TbTrendingDown } from 'react-icons/tb';
+import { TbSmartHome, TbTableOptions, TbMath, TbSettings, TbCheck, TbTrendingDown, TbArrowRight } from 'react-icons/tb';
 
 interface Cell {
   cost: number;
@@ -373,8 +373,8 @@ export default function TransportProblemPage() {
                 <TbSettings className="text-xl text-blue-600"/> Параметры задачи
              </h2>
              <button onClick={calculate} className="bg-blue-600 text-white font-bold py-2 px-8 rounded-lg shadow-lg hover:bg-blue-700 active:scale-95 transition-all">
-                Решить
-            </button>
+                <TbArrowRight className="text-xl"/>
+             </button>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

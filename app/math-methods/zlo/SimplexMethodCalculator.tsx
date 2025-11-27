@@ -507,7 +507,6 @@ export default function SimplexMethodCalculator() {
                     </div>
                     
                     <button onClick={calculate} className="bg-blue-600 hover:bg-blue-700 text-white h-12 md:w-12 rounded-full md:ml-2 shadow-md transition-transform active:scale-95 flex items-center justify-center flex-shrink-0 mt-2 md:mt-0">
-                        <span className="md:hidden font-bold mr-2">Решить</span>
                         <TbArrowRight className="text-xl"/>
                     </button>
                 </div>
