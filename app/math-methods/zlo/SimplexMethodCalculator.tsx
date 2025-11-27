@@ -152,10 +152,10 @@ export default function SimplexMethodCalculator() {
 
       const sortedVars = Array.from(decisionVars).sort((a, b) => a.localeCompare(b, undefined, {numeric: true}));
 
-      let colVars: string[] = [...sortedVars];
-      let rowVars: string[] = [];
-      let matrix: Fraction[][] = [];
-      let bCol: Fraction[] = [];
+      const colVars: string[] = [...sortedVars];
+      const rowVars: string[] = [];
+      const matrix: Fraction[][] = [];
+      const bCol: Fraction[] = [];
 
       let uCount = 0, wCount = 0;
 
@@ -243,7 +243,7 @@ export default function SimplexMethodCalculator() {
       
       let currMatrix = matrix.map(r => r.map(c => c));
       let currB = bCol.map(c => c);
-      let currRowVars = [...rowVars];
+      const currRowVars = [...rowVars];
       let currColVars = [...colVars];
       let transitionLogs: string[] = []; 
 
@@ -278,7 +278,7 @@ export default function SimplexMethodCalculator() {
 
         const isOptimal = pivotCol === -1;
         let pivotRow = -1;
-        let ratios: (string|null)[] = new Array(currMatrix.length).fill(null);
+        const ratios: (string|null)[] = new Array(currMatrix.length).fill(null);
 
         if (!isOptimal) {
           let minRatio = Infinity;
