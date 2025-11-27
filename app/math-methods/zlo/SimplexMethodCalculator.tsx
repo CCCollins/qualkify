@@ -480,8 +480,6 @@ export default function SimplexMethodCalculator() {
 
   return (
     <div className="max-w-5xl mx-auto p-4 font-sans text-gray-800">
-      <h1 className="text-2xl font-bold mb-6 text-center">Симплекс-метод</h1>
-
       {/* Input Form */}
       <div className="bg-white p-6 rounded-xl shadow-lg border border-blue-100 mb-8">
         <div className="flex flex-col md:flex-row gap-6 items-start mb-6">
