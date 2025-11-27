@@ -138,8 +138,18 @@ export default function MatrixGamePage() {
       let iter = 0;
       let nextLogs: string[] = [];
 
-      // Логи для начального шага
-      const initLogs: string[] = ["--- Начальная таблица ---", "F(yj) = Zj - Cj = 0 - 1 = -1"];
+      // --- Генерация логов для начальной таблицы ---
+      const initLogs: string[] = ["--- Начальная таблица ---"];
+      initLogs.push("Задача сводится к поиску Z_max = Σ(y_j).");
+      initLogs.push("Все коэффициенты целевой функции C_j = 1.");
+      initLogs.push("Начальный базис (u_i) имеет коэффициенты C_basis = 0.");
+      initLogs.push("Формула оценок: F_j = Z_j - C_j = (Σ C_basis · a_ij) - C_j");
+      
+      for(let j=0; j<n; j++) {
+          // Для начальной таблицы Z_j всегда 0, так как базис u_i (coeff=0)
+          // F_j = 0 - 1 = -1
+          initLogs.push(`F(${colHeaders[j]}) = 0 - 1 = -1`);
+      }
 
       while(iter < 15) {
           let minVal = new Fraction(0);
@@ -174,7 +184,7 @@ export default function MatrixGamePage() {
                   fRow: [...fRow], 
                   pivot: isOptimal ? undefined : {r: pRow, c: pCol} 
               },
-              desc: isOptimal ? "Оптимальное решение найдено." : `Вводим ${colHeaders[pCol]}, выводим ${rowHeaders[pRow]}.`,
+              desc: isOptimal ? "Оптимальное решение найдено (все оценки F ≥ 0)." : `Вводим ${colHeaders[pCol]}, выводим ${rowHeaders[pRow]}.`,
               calculations: iter === 0 ? initLogs : nextLogs
           });
 
@@ -188,18 +198,18 @@ export default function MatrixGamePage() {
           const nextF = [...fRow];
 
           nextLogs.push(`Разрешающий элемент (RE) = ${pivotVal.toString()}`);
+          nextLogs.push(`Расчет методом прямоугольника (кроме ведущих строки/столбца).`);
 
-          // 1. Ведущая строка
+          // 1. Ведущая строка (расчеты не логируем по просьбе)
           nextMatrix[pRow][pCol] = new Fraction(1).div(pivotVal);
           for(let j=0; j<n; j++) {
               if(j !== pCol) {
                   nextMatrix[pRow][j] = matrix[pRow][j].div(pivotVal);
-                  nextLogs.push(`[${rowHeaders[pRow]}, ${colHeaders[j]}]: ${matrix[pRow][j]} / ${pivotVal} = ${nextMatrix[pRow][j]}`);
               }
           }
           nextB[pRow] = b[pRow].div(pivotVal);
 
-          // 2. Ведущий столбец
+          // 2. Ведущий столбец (расчеты не логируем по просьбе)
           for(let i=0; i<m; i++) {
               if(i !== pRow) {
                   nextMatrix[i][pCol] = matrix[i][pCol].div(pivotVal).neg();
@@ -207,28 +217,35 @@ export default function MatrixGamePage() {
           }
           nextF[pCol] = fRow[pCol].div(pivotVal).neg();
 
-          // 3. Прямоугольник
+          // 3. Прямоугольник (остальные элементы + b + F)
+          // Матрица и столбец b
           for(let i=0; i<m; i++) {
               if(i === pRow) continue;
+              
+              // Элементы матрицы
               for(let j=0; j<n; j++) {
                   if(j === pCol) continue;
                   const sub = matrix[i][pCol].mul(matrix[pRow][j]).div(pivotVal);
                   nextMatrix[i][j] = matrix[i][j].sub(sub);
-                  // Пример расчета для логов (ограничим, чтобы не забивать)
-                  if(nextLogs.length < 20) nextLogs.push(`[${rowHeaders[i]}, ${colHeaders[j]}]: ${matrix[i][j]} - (${matrix[i][pCol]}·${matrix[pRow][j]})/${pivotVal} = ${nextMatrix[i][j]}`);
+                  // Логируем только элементы матрицы (можно ограничить кол-во если нужно)
+                  nextLogs.push(`[${rowHeaders[i]}, ${colHeaders[j]}]: ${matrix[i][j]} - (${matrix[i][pCol]}·${matrix[pRow][j]})/${pivotVal} = ${nextMatrix[i][j]}`);
               }
+              
+              // Столбец b
               const subB = matrix[i][pCol].mul(b[pRow]).div(pivotVal);
               nextB[i] = b[i].sub(subB);
+              nextLogs.push(`[${rowHeaders[i]}, b]: ${b[i]} - (${matrix[i][pCol]}·${b[pRow]})/${pivotVal} = ${nextB[i]}`);
           }
 
-          // F row
+          // Строка F
           for(let j=0; j<n; j++) {
               if(j === pCol) continue;
               const subF = fRow[pCol].mul(matrix[pRow][j]).div(pivotVal);
               nextF[j] = fRow[j].sub(subF);
+              nextLogs.push(`[F, ${colHeaders[j]}]: ${fRow[j]} - (${fRow[pCol]}·${matrix[pRow][j]})/${pivotVal} = ${nextF[j]}`);
           }
 
-          // Swap
+          // Swap заголовков
           const entering = colHeaders[pCol];
           const leaving = rowHeaders[pRow];
           colHeaders[pCol] = leaving;
@@ -593,7 +610,7 @@ export default function MatrixGamePage() {
                                             </summary>
                                             <div className="p-4 bg-slate-50 border-t border-slate-100 text-xs font-mono text-slate-600 space-y-1.5 max-h-60 overflow-y-auto shadow-inner">
                                                 {sst.calculations.map((line, i) => (
-                                                    <div key={i} className={`pb-1 ${line.startsWith("---") || line.includes("RE") || line.startsWith("Разрешающий") ? "font-bold text-blue-700 pt-2 border-b border-slate-200 mb-1" : "border-b border-slate-100 last:border-0"}`}>
+                                                    <div key={i} className={`pb-1 ${line.startsWith("---") || line.includes("RE") || line.startsWith("Расчет") || line.startsWith("Формула") ? "font-bold text-blue-700 pt-2 border-b border-slate-200 mb-1" : "border-b border-slate-100 last:border-0"}`}>
                                                         {line.replace("---", "").trim()}
                                                     </div>
                                                 ))}
