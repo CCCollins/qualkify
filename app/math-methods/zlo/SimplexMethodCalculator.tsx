@@ -219,6 +219,7 @@ export default function SimplexMethodCalculator() {
         const logs: string[] = [`--- Расчет оценок ${fLabel} (по формуле Zj - Cj) ---`];
         const cBasis = rVars.map(v => getC(v, phase));
         
+        // Расчет для переменных (столбцов)
         cVars.forEach((vName, j) => {
             const parts: string[] = [];
             for(let i=0; i<mat.length; i++) {
@@ -234,6 +235,20 @@ export default function SimplexMethodCalculator() {
 
             logs.push(`${fLabel}(${vName}) = [${zVal}] - (${cj}) = ${res}`);
         });
+
+        // Расчет для столбца b
+        const bParts: string[] = [];
+        for (let i = 0; i < b.length; i++) {
+          if (!cBasis[i].isZero() && !b[i].isZero()) {
+            bParts.push(`${cBasis[i]}·(${b[i]})`)
+          }
+        }
+        const bValStr = bParts.length > 0 ? bParts.join(" + ") : "0"
+        let bRes = new Fraction(0)
+        for (let i = 0; i < b.length; i++) bRes = bRes.add(cBasis[i].mul(b[i]))
+
+        logs.push(`${fLabel}(b) = [${bValStr}] = ${bRes}`)
+
         return logs;
       };
 
@@ -363,15 +378,13 @@ export default function SimplexMethodCalculator() {
         }
 
         // --- ГЕНЕРАЦИЯ ЛОГОВ ПЕРЕХОДА (ДЛЯ СЛЕДУЮЩЕГО ШАГА) ---
-        // Создаем "будущие" имена переменных для логов, чтобы координаты совпадали с таблицей,
-        // которую увидит пользователь (где переменные уже поменялись местами).
+        // Создаем "будущие" имена переменных для логов
         transitionLogs = [];
         const pivotEl = currMatrix[pivotRow][pivotCol];
         const fLabel = phase === 1 ? "F" : "f";
         const enteringVar = currColVars[pivotCol];
         const leavingVar = currRowVars[pivotRow];
 
-        // Симуляция смены базиса для логов
         const nextRowVars = [...currRowVars];
         nextRowVars[pivotRow] = enteringVar; // Строка станет enteringVar
         const nextColVars = [...currColVars];
@@ -394,7 +407,6 @@ export default function SimplexMethodCalculator() {
           if (j !== pivotCol) {
             const oldVal = currMatrix[pivotRow][j];
             nextMatrix[pivotRow][j] = oldVal.div(pivotEl);
-            // Используем nextColVars для координат
             transitionLogs.push(`[${nextRowVars[pivotRow]}, ${nextColVars[j]}]: ${oldVal} / ${pivotEl} = ${nextMatrix[pivotRow][j]}`);
           }
         }
@@ -408,7 +420,6 @@ export default function SimplexMethodCalculator() {
           if (i !== pivotRow) {
             const oldVal = currMatrix[i][pivotCol];
             nextMatrix[i][pivotCol] = oldVal.div(pivotEl).neg();
-            // Используем nextRowVars для координат
             transitionLogs.push(`[${nextRowVars[i]}, ${nextColVars[pivotCol]}]: -(${oldVal}) / ${pivotEl} = ${nextMatrix[i][pivotCol]}`);
           }
         }
@@ -423,15 +434,13 @@ export default function SimplexMethodCalculator() {
             if (j === pivotCol) continue;
             
             const oldVal = currMatrix[i][j];
-            const rowEl = currMatrix[i][pivotCol]; // элемент в разрешающем столбце
-            const colEl = currMatrix[pivotRow][j]; // элемент в разрешающей строке
+            const rowEl = currMatrix[i][pivotCol];
+            const colEl = currMatrix[pivotRow][j];
             const rect = rowEl.mul(colEl).div(pivotEl);
             nextMatrix[i][j] = oldVal.sub(rect);
             
-            // Используем "будущие" координаты
             transitionLogs.push(`[${nextRowVars[i]}, ${nextColVars[j]}]: ${oldVal} - (${rowEl}·${colEl})/${pivotEl} = ${nextMatrix[i][j]}`);
           }
-          // b column
           const oldB = currB[i];
           const rowEl = currMatrix[i][pivotCol];
           const colEl = currB[pivotRow];
@@ -462,7 +471,6 @@ export default function SimplexMethodCalculator() {
         const newFVal = oldFVal.sub(rectF);
         transitionLogs.push(`${fLabel}(b): ${oldFVal} - (${fPivot}·${bEl})/${pivotEl} = ${newFVal}`);
 
-        // Swap vars actually
         currColVars[pivotCol] = leavingVar;
         currRowVars[pivotRow] = enteringVar;
 
