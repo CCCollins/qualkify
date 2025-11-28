@@ -569,7 +569,6 @@ export default function LagrangeCalculator() {
       // Проверяем тип задачи
       const isLinearF = f.A.isZero() && f.B.isZero() && f.C.isZero()
       const isQuadraticG = !g.a.isZero() || !g.b.isZero()
-      const isLinearG = g.a.isZero() && g.b.isZero() && g.c.isZero()
 
       if (isLinearF && isQuadraticG && g.c.isZero() && g.d.isZero() && g.e.isZero()) {
         systemSolution.push("Тип задачи: линейная ЦФ с квадратичным ограничением")
