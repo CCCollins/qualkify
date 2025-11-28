@@ -112,13 +112,6 @@ interface CoeffsInput {
 // Пресеты из лекций
 const PRESETS = [
     {
-        name: "2x₁² - 3x₁x₂ - 4x₂²",
-        coeffs: { A: "2", B: "-4", C: "-3", D: "0", E: "0", F: "0" }, 
-        start: { x1: "1", x2: "1" },
-        mode: 'const' as const,
-        alpha: "0.05"
-    },
-    {
         name: "x₁² - 5x₁ + x₂² + 3x₂",
         coeffs: { A: "1", B: "1", C: "0", D: "-5", E: "3", F: "0" },
         start: { x1: "0", x2: "0" },
