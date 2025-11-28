@@ -373,7 +373,7 @@ export default function GradientCalculator() {
                                 <input 
                                     type="text"
                                     value={coeffs[key]} 
-                                    onChange={e => setCoeffs({...coeffs, [key]: e.target.value})}
+                                    onChange={(e) => setCoeffs({...coeffs, [key]: e.target.value})}
                                     placeholder="0"
                                     className="p-2 border rounded text-center font-mono bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none transition"
                                 />
@@ -388,11 +388,11 @@ export default function GradientCalculator() {
                             <div className="flex gap-3">
                                 <div className="flex items-center gap-2 w-full">
                                     <span className="text-gray-400 font-serif italic">x₁</span>
-                                    <input type="text" value={startPoint.x1} onChange={e => setStartPoint({...startPoint, x1: e.target.value})} className="w-full p-2 border rounded text-center font-mono"/>
+                                    <input type="text" value={startPoint.x1} onChange={(e) => setStartPoint({...startPoint, x1: e.target.value})} className="w-full p-2 border rounded text-center font-mono"/>
                                 </div>
                                 <div className="flex items-center gap-2 w-full">
                                     <span className="text-gray-400 font-serif italic">x₂</span>
-                                    <input type="text" value={startPoint.x2} onChange={e => setStartPoint({...startPoint, x2: e.target.value})} className="w-full p-2 border rounded text-center font-mono"/>
+                                    <input type="text" value={startPoint.x2} onChange={(e) => setStartPoint({...startPoint, x2: e.target.value})} className="w-full p-2 border rounded text-center font-mono"/>
                                 </div>
                             </div>
                         </div>
@@ -411,12 +411,12 @@ export default function GradientCalculator() {
                                 {mode === 'const' && (
                                     <div className="flex items-center gap-2 w-full">
                                         <span className="text-gray-400 font-serif italic" title="Шаг обучения">α</span>
-                                        <input type="text" value={alpha} onChange={e => setAlpha(e.target.value)} className="w-full p-2 border rounded text-center font-mono"/>
+                                        <input type="text" value={alpha} onChange={(e) => setAlpha(e.target.value)} className="w-full p-2 border rounded text-center font-mono"/>
                                     </div>
                                 )}
                                 <div className="flex items-center gap-2 w-full">
                                     <span className="text-gray-400 font-serif italic" title="Точность">ε</span>
-                                    <input type="text" value={epsilon} onChange={e => setEpsilon(e.target.value)} className="w-full p-2 border rounded text-center font-mono"/>
+                                    <input type="text" value={epsilon} onChange={(e) => setEpsilon(e.target.value)} className="w-full p-2 border rounded text-center font-mono"/>
                                 </div>
                              </div>
                         </div>
