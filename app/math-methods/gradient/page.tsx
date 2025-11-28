@@ -322,7 +322,8 @@ export default function GradientCalculator() {
             setLogs(steps);
 
         } catch (e) {
-            setError("Ошибка: проверьте данные. Возможно, деление на ноль.");
+            const errorMessage = e instanceof Error ? e.message : "Ошибка: проверьте данные. Возможно, деление на ноль.";
+            setError(errorMessage);
         }
     };
 
