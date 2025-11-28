@@ -321,13 +321,13 @@ export default function GradientCalculator() {
     };
 
     const loadPreset = (idx: number) => {
-        const p = PRESETS[idx];
-        setCoeffs(p.coeffs);
-        setStartPoint(p.start);
-        setMode(p.mode);
-        if (p.mode === 'const') setAlpha(p.alpha);
-        setLogs(null);
-    };
+            const p = PRESETS[idx];
+            setCoeffs(p.coeffs);
+            setStartPoint(p.start);
+            setMode(p.mode as 'const' | 'steepest');
+            if ((p.mode as 'const' | 'steepest') === 'const') setAlpha(p.alpha);
+            setLogs(null);
+        };
 
     return (
         <div className="max-w-5xl mx-auto p-4 md:p-6 font-sans text-gray-800 pb-20">
