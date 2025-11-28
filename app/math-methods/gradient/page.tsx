@@ -397,7 +397,7 @@ export default function GradientCalculator() {
                                 <label className="block text-xs font-bold text-gray-500 uppercase">Метод спуска</label>
                                 <div className="flex bg-white rounded p-0.5 border">
                                     <button onClick={() => setMode('const')} className={`px-2 py-0.5 text-xs rounded transition ${mode==='const' ? 'bg-blue-100 text-blue-700 font-bold' : 'text-gray-500'}`}>α=const</button>
-                                    <button onClick={() => setMode('steepest')} className={`px-2 py-0.5 text-xs rounded transition ${mode==='steepest' ? 'bg-blue-100 text-blue-700 font-bold' : 'text-gray-500'}`}>Наискорейший</button>
+                                    <button onClick={() => setMode('steepest')} className={`px-2 py-0.5 text-xs rounded transition ${mode==='steepest' ? 'bg-blue-100 text-blue-700 font-bold' : 'text-gray-500'}`}>Наискор.</button>
                                 </div>
                              </div>
                              
