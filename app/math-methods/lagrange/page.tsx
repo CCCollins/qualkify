@@ -1214,7 +1214,7 @@ export default function LagrangeCalculator() {
                       >
                         <div className="flex items-center justify-between mb-3">
                           <span className="font-semibold text-gray-800">
-                            Точка {idx + 1}: ({cp.x1.toString()}, {cp.x2.toString()})
+                            Т{idx + 1}: ({cp.x1.toString()}, {cp.x2.toString()})
                           </span>
                           <span
                             className={`px-3 py-1 rounded-full text-sm font-bold ${
