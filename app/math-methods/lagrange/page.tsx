@@ -965,493 +965,491 @@ export default function LagrangeCalculator() {
   }
 
   return (
-    <main className="min-h-screen">
-      <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
-        {/* Header */}
-        <div className="flex justify-center items-center mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold mb-6 text-center flex items-center justify-center gap-2">
-              <Link href="/" className="text-blue-600 hover:text-blue-800 transition-colors"><TbSmartHome/></Link> 
-              Метод множителей Лагранжа
-          </h1>
-        </div>
+    <div className="max-w-5xl mx-auto p-4 md:p-6 font-sans text-gray-800 pb-20">
+      {/* Header */}
+      <div className="flex justify-center items-center mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold mb-6 text-center flex items-center justify-center gap-2">
+            <Link href="/" className="text-blue-600 hover:text-blue-800 transition-colors"><TbSmartHome/></Link> 
+            Метод множителей Лагранжа
+        </h1>
+      </div>
 
-        {/* Tab Switcher */}
-        <div className="flex text-xs sm:text-sm md:text-base font-bold gap-1 sm:gap-3 flex-wrap justify-center">
-          <button
-            onClick={() => setActiveTab("quadratic")}
-            className={`px-3 sm:px-4 py-3 sm:py-2 rounded-lg min-h-[44px] flex-1 sm:flex-none transition-colors ${
-              activeTab === "quadratic"
-                ? "bg-purple-600 text-white shadow-md"
-                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
-            }`}
-          >
-            Алгебраические задачи
-          </button>
-          <button
-            onClick={() => setActiveTab("geometry")}
-            className={`px-3 sm:px-4 py-3 sm:py-2 rounded-lg min-h-[44px] flex-1 sm:flex-none transition-colors ${
-              activeTab === "geometry"
-                ? "bg-purple-600 text-white shadow-md"
-                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
-            }`}
-          >
-            Геометрические задачи
-          </button>
-        </div>
+      {/* Tab Switcher */}
+      <div className="flex text-xs sm:text-sm md:text-base font-bold gap-1 sm:gap-3 flex-wrap justify-center">
+        <button
+          onClick={() => setActiveTab("quadratic")}
+          className={`px-3 sm:px-4 py-3 sm:py-2 rounded-lg min-h-[44px] flex-1 sm:flex-none transition-colors ${
+            activeTab === "quadratic"
+              ? "bg-purple-600 text-white shadow-md"
+              : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+          }`}
+        >
+          Алгебраические задачи
+        </button>
+        <button
+          onClick={() => setActiveTab("geometry")}
+          className={`px-3 sm:px-4 py-3 sm:py-2 rounded-lg min-h-[44px] flex-1 sm:flex-none transition-colors ${
+            activeTab === "geometry"
+              ? "bg-purple-600 text-white shadow-md"
+              : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+          }`}
+        >
+          Геометрические задачи
+        </button>
+      </div>
 
-        {/* Quadratic Tab Content */}
-        {activeTab === "quadratic" && (
-          <div className="space-y-6">
-            {/* Input Card */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-purple-100 p-6">
+      {/* Quadratic Tab Content */}
+      {activeTab === "quadratic" && (
+        <div className="space-y-6">
+          {/* Input Card */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-purple-100 p-6">
 
-              {/* Presets */}
-              <div className="mb-6">
-                <div className="flex flex-wrap gap-2">
-                  {PRESETS.map((preset, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => {
-                        setFuncCoeffs(preset.func)
-                        setConstraintCoeffs(preset.constraint)
-                        setResult(null)
-                        setError(null)
-                      }}
-                      className="px-3 py-1.5 text-xs bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-full transition-colors border border-purple-200"
-                    >
-                      {preset.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Target Function */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-600 mb-2">
-                  Целевая функция f(x₁, x₂) → extr
-                </label>
-                <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
-                    {/* Кубические члены */}
-                    <div className="col-span-1">
-                        <label className="block text-[10px] text-gray-500 text-center mb-1">x₁²x₂</label>
-                        <input
-                            type="text"
-                            value={funcCoeffs.G}
-                            onChange={(e) => setFuncCoeffs({ ...funcCoeffs, G: e.target.value })}
-                            className="w-full px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 text-center text-sm"
-                            placeholder="0"
-                        />
-                    </div>
-                    <div className="col-span-1">
-                        <label className="block text-[10px] text-gray-500 text-center mb-1">x₁x₂²</label>
-                        <input
-                            type="text"
-                            value={funcCoeffs.H}
-                            onChange={(e) => setFuncCoeffs({ ...funcCoeffs, H: e.target.value })}
-                            className="w-full px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 text-center text-sm"
-                            placeholder="0"
-                        />
-                    </div>
-                    
-                    {/* Квадратичные и линейные члены */}
-                    {(["A", "B", "C", "D", "E", "F"] as const).map((key) => (
-                    <div key={key} className="col-span-1">
-                      <label className="block text-[10px] text-gray-500 text-center mb-1">
-                          {key === 'A' ? 'x₁²' : 
-                           key === 'B' ? 'x₂²' : 
-                           key === 'C' ? 'x₁x₂' : 
-                           key === 'D' ? 'x₁' : 
-                           key === 'E' ? 'x₂' : 'Const'}
-                      </label>
-                      <input
-                        type="text"
-                        value={funcCoeffs[key]}
-                        onChange={(e) => setFuncCoeffs({ ...funcCoeffs, [key]: e.target.value })}
-                        className="w-full px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 text-center text-sm"
-                        placeholder="0"
-                      />
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-2 text-sm text-purple-600 font-medium text-center">f(x₁, x₂) = {getFuncString()}</div>
-              </div>
-
-              {/* Constraint */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-600 mb-2">
-                  Ограничение g(x₁, x₂) = 0
-                </label>
-                <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-                  {(["a", "b", "c", "d", "e", "f"] as const).map((key) => (
-                    <div key={key}>
-                      <label className="block text-xs text-gray-500 text-center mb-1">
-                           {key === 'a' ? 'x₁²' : 
-                           key === 'b' ? 'x₂²' : 
-                           key === 'c' ? 'x₁x₂' : 
-                           key === 'd' ? 'x₁' : 
-                           key === 'e' ? 'x₂' : 'Const'}
-                      </label>
-                      <input
-                        type="text"
-                        value={constraintCoeffs[key]}
-                        onChange={(e) => setConstraintCoeffs({ ...constraintCoeffs, [key]: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 text-center"
-                        placeholder="0"
-                      />
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-2 text-sm text-purple-600 font-medium text-center">{getConstraintString()}</div>
-              </div>
-
-              <button
-                onClick={calculate}
-                className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl"
-              >
-                Решить методом Лагранжа
-              </button>
-
-              {error && <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600">{error}</div>}
-            </div>
-
-            {/* Results */}
-            {result && (
-              <div className="space-y-4">
-                {/* Lagrangian */}
-                <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-purple-100 p-6">
+            {/* Presets */}
+            <div className="mb-6">
+              <div className="flex flex-wrap gap-2">
+                {PRESETS.map((preset, idx) => (
                   <button
-                    onClick={() => setExpandedSteps((prev) => ({ ...prev, lagrangian: !prev.lagrangian }))}
-                    className="w-full flex items-center justify-between"
-                  >
-                    <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                      <span className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center text-white text-sm font-bold">
-                        1
-                      </span>
-                      Функция Лагранжа
-                    </h2>
-                    <span className="text-purple-500">{expandedSteps.lagrangian ? "▼" : "▶"}</span>
-                  </button>
-                  {expandedSteps.lagrangian && (
-                    <div className="mt-4 p-4 bg-purple-50 rounded-xl font-mono text-sm overflow-x-auto">{result.lagrangian}</div>
-                  )}
-                </div>
-
-                {/* Partial Derivatives */}
-                <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-purple-100 p-6">
-                  <button
-                    onClick={() => setExpandedSteps((prev) => ({ ...prev, derivatives: !prev.derivatives }))}
-                    className="w-full flex items-center justify-between"
-                  >
-                    <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                      <span className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center text-white text-sm font-bold">
-                        2
-                      </span>
-                      Частные производные
-                    </h2>
-                    <span className="text-purple-500">{expandedSteps.derivatives ? "▼" : "▶"}</span>
-                  </button>
-                  {expandedSteps.derivatives && (
-                    <div className="mt-4 space-y-2">
-                      {result.partialDerivatives.map((pd, i) => (
-                        <div key={i} className="p-3 bg-purple-50 rounded-lg font-mono text-sm">
-                          {pd}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* System Solution */}
-                <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-purple-100 p-6">
-                  <button
-                    onClick={() => setExpandedSteps((prev) => ({ ...prev, system: !prev.system }))}
-                    className="w-full flex items-center justify-between"
-                  >
-                    <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                      <span className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center text-white text-sm font-bold">
-                        3
-                      </span>
-                      Решение системы
-                    </h2>
-                    <span className="text-purple-500">{expandedSteps.system ? "▼" : "▶"}</span>
-                  </button>
-                  {expandedSteps.system && (
-                    <div className="mt-4 space-y-1">
-                      {result.systemSolution.map((line, i) => (
-                        <div key={i} className={`font-mono text-sm ${line === "" ? "h-2" : "p-2 bg-gray-50 rounded"}`}>
-                          {line}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Critical Points Analysis */}
-                <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-purple-100 p-6">
-                  <button
-                    onClick={() => setExpandedSteps((prev) => ({ ...prev, analysis: !prev.analysis }))}
-                    className="w-full flex items-center justify-between"
-                  >
-                    <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                      <span className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center text-white text-sm font-bold">
-                        4
-                      </span>
-                      Анализ критических точек
-                    </h2>
-                    <span className="text-purple-500">{expandedSteps.analysis ? "▼" : "▶"}</span>
-                  </button>
-                  {expandedSteps.analysis && (
-                    <div className="mt-4 space-y-4">
-                      {result.criticalPoints.map((cp, idx) => (
-                        <div
-                          key={idx}
-                          className={`p-4 rounded-xl border-2 ${
-                            cp.type === "max"
-                              ? "bg-green-50 border-green-300"
-                              : cp.type === "min"
-                                ? "bg-blue-50 border-blue-300"
-                                : cp.type === "saddle"
-                                  ? "bg-yellow-50 border-yellow-300"
-                                  : "bg-gray-50 border-gray-300"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between mb-3">
-                            <span className="font-semibold text-gray-800">
-                              Точка {idx + 1}: ({cp.x1.toString()}, {cp.x2.toString()})
-                            </span>
-                            <span
-                              className={`px-3 py-1 rounded-full text-sm font-bold ${
-                                cp.type === "max"
-                                  ? "bg-green-200 text-green-800"
-                                  : cp.type === "min"
-                                    ? "bg-blue-200 text-blue-800"
-                                    : cp.type === "saddle"
-                                      ? "bg-yellow-200 text-yellow-800"
-                                      : "bg-gray-200 text-gray-800"
-                              }`}
-                            >
-                              {cp.type === "max"
-                                ? "МАКСИМУМ"
-                                : cp.type === "min"
-                                  ? "МИНИМУМ"
-                                  : cp.type === "saddle"
-                                    ? "СЕДЛОВАЯ"
-                                    : "НЕ ОПРЕДЕЛЕНО"}
-                            </span>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2 text-sm mb-3">
-                            <div className="p-2 bg-white/50 rounded-lg">
-                              <span className="text-gray-500">λ = </span>
-                              <span className="font-mono">{cp.lambda.toString()}</span>
-                            </div>
-                            <div className="p-2 bg-white/50 rounded-lg">
-                              <span className="text-gray-500">f(x*) = </span>
-                              <span className="font-mono">{cp.fValue.toString()}</span>
-                            </div>
-                          </div>
-                          <div className="text-sm space-y-1">
-                            <div className="font-medium text-gray-600">Анализ второго порядка:</div>
-                            {cp.hessianAnalysis.map((line, i) => (
-                              <div key={i} className="font-mono text-xs p-1 bg-white/50 rounded">
-                                {line}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Conclusion */}
-                <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl shadow-xl p-6 text-white">
-                  <h2 className="text-lg font-semibold mb-2">Ответ</h2>
-                  <p className="text-purple-100">{result.conclusion}</p>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Geometry Tab Content */}
-        {activeTab === "geometry" && (
-          <div className="space-y-6">
-            {/* Input Card */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-purple-100 p-6">
-
-              {/* Geometry Presets */}
-              <div className="grid md:grid-cols-2 gap-4 mb-6">
-                {GEOMETRY_PRESETS.map((preset) => (
-                  <button
-                    key={preset.type}
+                    key={idx}
                     onClick={() => {
-                      setGeometryType(preset.type)
-                      setConstraintValue(preset.constraintValue.toString())
-                      setGeometryResult(null)
+                      setFuncCoeffs(preset.func)
+                      setConstraintCoeffs(preset.constraint)
+                      setResult(null)
                       setError(null)
                     }}
-                    className={`p-4 rounded-xl border-2 text-left transition-all ${
-                      geometryType === preset.type
-                        ? "border-purple-500 bg-purple-50 shadow-md"
-                        : "border-gray-200 hover:border-purple-300 hover:bg-purple-50/50"
-                    }`}
+                    className="px-3 py-1.5 text-xs bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-full transition-colors border border-purple-200"
                   >
-                    <div className="flex items-center gap-3 mb-2">
-                      <div
-                        className={`p-2 rounded-lg ${geometryType === preset.type ? "bg-purple-500 text-white" : "bg-gray-100 text-gray-600"}`}
-                      >
-                        {preset.icon}
-                      </div>
-                      <span className="font-semibold text-gray-800">{preset.name}</span>
-                    </div>
-                    <p className="text-sm text-gray-600 mb-2">{preset.description}</p>
-                    <div className="text-xs font-mono text-purple-600">
-                      <div>{preset.objective}</div>
-                      <div>{preset.constraint}</div>
-                    </div>
+                    {preset.name}
                   </button>
                 ))}
               </div>
-
-              {/* Constraint Value Input */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-600 mb-2">
-                  Значение объёма V (можно ввести дробь, например 32 или 1/2):
-                </label>
-                <input
-                  type="text"
-                  value={constraintValue}
-                  onChange={(e) => setConstraintValue(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                  placeholder="Введите значение V"
-                />
-              </div>
-
-              <button
-                onClick={calculateGeometry}
-                className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl"
-              >
-                Решить методом Лагранжа
-              </button>
-
-              {error && <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600">{error}</div>}
             </div>
 
-            {/* Geometry Results */}
-            {geometryResult && (
-              <div className="space-y-4">
-                {/* Problem Statement */}
-                <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-purple-100 p-6">
-                  <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            {/* Target Function */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-600 mb-2">
+                Целевая функция f(x₁, x₂) → extr
+              </label>
+              <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
+                  {/* Кубические члены */}
+                  <div className="col-span-1">
+                      <label className="block text-[10px] text-gray-500 text-center mb-1">x₁²x₂</label>
+                      <input
+                          type="text"
+                          value={funcCoeffs.G}
+                          onChange={(e) => setFuncCoeffs({ ...funcCoeffs, G: e.target.value })}
+                          className="w-full px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 text-center text-sm"
+                          placeholder="0"
+                      />
+                  </div>
+                  <div className="col-span-1">
+                      <label className="block text-[10px] text-gray-500 text-center mb-1">x₁x₂²</label>
+                      <input
+                          type="text"
+                          value={funcCoeffs.H}
+                          onChange={(e) => setFuncCoeffs({ ...funcCoeffs, H: e.target.value })}
+                          className="w-full px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 text-center text-sm"
+                          placeholder="0"
+                      />
+                  </div>
+                  
+                  {/* Квадратичные и линейные члены */}
+                  {(["A", "B", "C", "D", "E", "F"] as const).map((key) => (
+                  <div key={key} className="col-span-1">
+                    <label className="block text-[10px] text-gray-500 text-center mb-1">
+                        {key === 'A' ? 'x₁²' : 
+                          key === 'B' ? 'x₂²' : 
+                          key === 'C' ? 'x₁x₂' : 
+                          key === 'D' ? 'x₁' : 
+                          key === 'E' ? 'x₂' : 'Const'}
+                    </label>
+                    <input
+                      type="text"
+                      value={funcCoeffs[key]}
+                      onChange={(e) => setFuncCoeffs({ ...funcCoeffs, [key]: e.target.value })}
+                      className="w-full px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 text-center text-sm"
+                      placeholder="0"
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="mt-2 text-sm text-purple-600 font-medium text-center">f(x₁, x₂) = {getFuncString()}</div>
+            </div>
+
+            {/* Constraint */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-600 mb-2">
+                Ограничение g(x₁, x₂) = 0
+              </label>
+              <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+                {(["a", "b", "c", "d", "e", "f"] as const).map((key) => (
+                  <div key={key}>
+                    <label className="block text-xs text-gray-500 text-center mb-1">
+                          {key === 'a' ? 'x₁²' : 
+                          key === 'b' ? 'x₂²' : 
+                          key === 'c' ? 'x₁x₂' : 
+                          key === 'd' ? 'x₁' : 
+                          key === 'e' ? 'x₂' : 'Const'}
+                    </label>
+                    <input
+                      type="text"
+                      value={constraintCoeffs[key]}
+                      onChange={(e) => setConstraintCoeffs({ ...constraintCoeffs, [key]: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 text-center"
+                      placeholder="0"
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="mt-2 text-sm text-purple-600 font-medium text-center">{getConstraintString()}</div>
+            </div>
+
+            <button
+              onClick={calculate}
+              className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl"
+            >
+              Решить методом Лагранжа
+            </button>
+
+            {error && <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600">{error}</div>}
+          </div>
+
+          {/* Results */}
+          {result && (
+            <div className="space-y-4">
+              {/* Lagrangian */}
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-purple-100 p-6">
+                <button
+                  onClick={() => setExpandedSteps((prev) => ({ ...prev, lagrangian: !prev.lagrangian }))}
+                  className="w-full flex items-center justify-between"
+                >
+                  <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
                     <span className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center text-white text-sm font-bold">
                       1
                     </span>
-                    Постановка задачи
+                    Функция Лагранжа
                   </h2>
-                  <div className="space-y-2 font-mono text-sm">
-                    <div className="p-3 bg-purple-50 rounded-lg">{geometryResult.objectiveFunction}</div>
-                    <div className="p-3 bg-purple-50 rounded-lg">{geometryResult.constraintFunction}</div>
-                  </div>
-                </div>
+                  <span className="text-purple-500">{expandedSteps.lagrangian ? "▼" : "▶"}</span>
+                </button>
+                {expandedSteps.lagrangian && (
+                  <div className="mt-4 p-4 bg-purple-50 rounded-xl font-mono text-sm overflow-x-auto">{result.lagrangian}</div>
+                )}
+              </div>
 
-                {/* Lagrangian */}
-                <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-purple-100 p-6">
-                  <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              {/* Partial Derivatives */}
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-purple-100 p-6">
+                <button
+                  onClick={() => setExpandedSteps((prev) => ({ ...prev, derivatives: !prev.derivatives }))}
+                  className="w-full flex items-center justify-between"
+                >
+                  <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
                     <span className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center text-white text-sm font-bold">
                       2
                     </span>
-                    Функция Лагранжа
-                  </h2>
-                  <div className="p-4 bg-purple-50 rounded-xl font-mono text-sm overflow-x-auto">{geometryResult.lagrangian}</div>
-                </div>
-
-                {/* Partial Derivatives */}
-                <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-purple-100 p-6">
-                  <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <span className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center text-white text-sm font-bold">
-                      3
-                    </span>
                     Частные производные
                   </h2>
-                  <div className="space-y-2">
-                    {geometryResult.partialDerivatives.map((pd, i) => (
+                  <span className="text-purple-500">{expandedSteps.derivatives ? "▼" : "▶"}</span>
+                </button>
+                {expandedSteps.derivatives && (
+                  <div className="mt-4 space-y-2">
+                    {result.partialDerivatives.map((pd, i) => (
                       <div key={i} className="p-3 bg-purple-50 rounded-lg font-mono text-sm">
                         {pd}
                       </div>
                     ))}
                   </div>
-                </div>
+                )}
+              </div>
 
-                {/* Solution Steps */}
-                <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-purple-100 p-6">
-                  <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              {/* System Solution */}
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-purple-100 p-6">
+                <button
+                  onClick={() => setExpandedSteps((prev) => ({ ...prev, system: !prev.system }))}
+                  className="w-full flex items-center justify-between"
+                >
+                  <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
                     <span className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center text-white text-sm font-bold">
-                      4
+                      3
                     </span>
                     Решение системы
                   </h2>
-                  <div className="space-y-1">
-                    {geometryResult.systemSolution.map((line, i) => (
+                  <span className="text-purple-500">{expandedSteps.system ? "▼" : "▶"}</span>
+                </button>
+                {expandedSteps.system && (
+                  <div className="mt-4 space-y-1">
+                    {result.systemSolution.map((line, i) => (
                       <div key={i} className={`font-mono text-sm ${line === "" ? "h-2" : "p-2 bg-gray-50 rounded"}`}>
                         {line}
                       </div>
                     ))}
-                  </div>
-                </div>
-
-                {/* Hessian Analysis */}
-                <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-purple-100 p-6">
-                  <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <span className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center text-white text-sm font-bold">
-                      5
-                    </span>
-                    Анализ условий второго порядка
-                  </h2>
-                  <div className="space-y-1">
-                    {geometryResult.hessianAnalysis.map((line, i) => (
-                      <div key={i} className={`font-mono text-sm ${line === "" ? "h-2" : "p-2 bg-gray-50 rounded"}`}>
-                        {line}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Critical Point Result */}
-                {geometryResult.criticalPoint && (
-                  <div
-                    className={`rounded-2xl shadow-xl p-6 ${
-                      geometryResult.criticalPoint.type === "min"
-                        ? "bg-gradient-to-r from-blue-600 to-cyan-600"
-                        : "bg-gradient-to-r from-green-600 to-emerald-600"
-                    } text-white`}
-                  >
-                    <h2 className="text-lg font-semibold mb-4">Оптимальное решение</h2>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      {Object.entries(geometryResult.criticalPoint.vars).map(([key, value]) => (
-                        <div key={key} className="p-3 bg-white/20 rounded-xl">
-                          <span className="text-white/80">{key} = </span>
-                          <span className="font-mono font-bold">{value}</span>
-                        </div>
-                      ))}
-                      <div className="p-3 bg-white/20 rounded-xl">
-                        <span className="text-white/80">λ = </span>
-                        <span className="font-mono font-bold">{geometryResult.criticalPoint.lambda}</span>
-                      </div>
-                      <div className="p-3 bg-white/20 rounded-xl">
-                        <span className="text-white/80">S(x*) = </span>
-                        <span className="font-mono font-bold">{geometryResult.criticalPoint.fValue}</span>
-                      </div>
-                    </div>
-                    <div className="mt-4 p-3 bg-white/20 rounded-xl whitespace-pre-line">
-                      <span className="font-semibold">{geometryResult.conclusion}</span>
-                    </div>
                   </div>
                 )}
               </div>
-            )}
+
+              {/* Critical Points Analysis */}
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-purple-100 p-6">
+                <button
+                  onClick={() => setExpandedSteps((prev) => ({ ...prev, analysis: !prev.analysis }))}
+                  className="w-full flex items-center justify-between"
+                >
+                  <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                    <span className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center text-white text-sm font-bold">
+                      4
+                    </span>
+                    Анализ критических точек
+                  </h2>
+                  <span className="text-purple-500">{expandedSteps.analysis ? "▼" : "▶"}</span>
+                </button>
+                {expandedSteps.analysis && (
+                  <div className="mt-4 space-y-4">
+                    {result.criticalPoints.map((cp, idx) => (
+                      <div
+                        key={idx}
+                        className={`p-4 rounded-xl border-2 ${
+                          cp.type === "max"
+                            ? "bg-green-50 border-green-300"
+                            : cp.type === "min"
+                              ? "bg-blue-50 border-blue-300"
+                              : cp.type === "saddle"
+                                ? "bg-yellow-50 border-yellow-300"
+                                : "bg-gray-50 border-gray-300"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="font-semibold text-gray-800">
+                            Точка {idx + 1}: ({cp.x1.toString()}, {cp.x2.toString()})
+                          </span>
+                          <span
+                            className={`px-3 py-1 rounded-full text-sm font-bold ${
+                              cp.type === "max"
+                                ? "bg-green-200 text-green-800"
+                                : cp.type === "min"
+                                  ? "bg-blue-200 text-blue-800"
+                                  : cp.type === "saddle"
+                                    ? "bg-yellow-200 text-yellow-800"
+                                    : "bg-gray-200 text-gray-800"
+                            }`}
+                          >
+                            {cp.type === "max"
+                              ? "МАКСИМУМ"
+                              : cp.type === "min"
+                                ? "МИНИМУМ"
+                                : cp.type === "saddle"
+                                  ? "СЕДЛОВАЯ"
+                                  : "НЕ ОПРЕДЕЛЕНО"}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                          <div className="p-2 bg-white/50 rounded-lg">
+                            <span className="text-gray-500">λ = </span>
+                            <span className="font-mono">{cp.lambda.toString()}</span>
+                          </div>
+                          <div className="p-2 bg-white/50 rounded-lg">
+                            <span className="text-gray-500">f(x*) = </span>
+                            <span className="font-mono">{cp.fValue.toString()}</span>
+                          </div>
+                        </div>
+                        <div className="text-sm space-y-1">
+                          <div className="font-medium text-gray-600">Анализ второго порядка:</div>
+                          {cp.hessianAnalysis.map((line, i) => (
+                            <div key={i} className="font-mono text-xs p-1 bg-white/50 rounded">
+                              {line}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Conclusion */}
+              <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl shadow-xl p-6 text-white">
+                <h2 className="text-lg font-semibold mb-2">Ответ</h2>
+                <p className="text-purple-100">{result.conclusion}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Geometry Tab Content */}
+      {activeTab === "geometry" && (
+        <div className="space-y-6">
+          {/* Input Card */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-purple-100 p-6">
+
+            {/* Geometry Presets */}
+            <div className="grid md:grid-cols-2 gap-4 mb-6">
+              {GEOMETRY_PRESETS.map((preset) => (
+                <button
+                  key={preset.type}
+                  onClick={() => {
+                    setGeometryType(preset.type)
+                    setConstraintValue(preset.constraintValue.toString())
+                    setGeometryResult(null)
+                    setError(null)
+                  }}
+                  className={`p-4 rounded-xl border-2 text-left transition-all ${
+                    geometryType === preset.type
+                      ? "border-purple-500 bg-purple-50 shadow-md"
+                      : "border-gray-200 hover:border-purple-300 hover:bg-purple-50/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <div
+                      className={`p-2 rounded-lg ${geometryType === preset.type ? "bg-purple-500 text-white" : "bg-gray-100 text-gray-600"}`}
+                    >
+                      {preset.icon}
+                    </div>
+                    <span className="font-semibold text-gray-800">{preset.name}</span>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-2">{preset.description}</p>
+                  <div className="text-xs font-mono text-purple-600">
+                    <div>{preset.objective}</div>
+                    <div>{preset.constraint}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {/* Constraint Value Input */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-600 mb-2">
+                Значение объёма V (можно ввести дробь, например 32 или 1/2):
+              </label>
+              <input
+                type="text"
+                value={constraintValue}
+                onChange={(e) => setConstraintValue(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                placeholder="Введите значение V"
+              />
+            </div>
+
+            <button
+              onClick={calculateGeometry}
+              className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl"
+            >
+              Решить методом Лагранжа
+            </button>
+
+            {error && <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600">{error}</div>}
           </div>
-        )}
-      </div>
-    </main>
+
+          {/* Geometry Results */}
+          {geometryResult && (
+            <div className="space-y-4">
+              {/* Problem Statement */}
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-purple-100 p-6">
+                <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <span className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center text-white text-sm font-bold">
+                    1
+                  </span>
+                  Постановка задачи
+                </h2>
+                <div className="space-y-2 font-mono text-sm">
+                  <div className="p-3 bg-purple-50 rounded-lg">{geometryResult.objectiveFunction}</div>
+                  <div className="p-3 bg-purple-50 rounded-lg">{geometryResult.constraintFunction}</div>
+                </div>
+              </div>
+
+              {/* Lagrangian */}
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-purple-100 p-6">
+                <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <span className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center text-white text-sm font-bold">
+                    2
+                  </span>
+                  Функция Лагранжа
+                </h2>
+                <div className="p-4 bg-purple-50 rounded-xl font-mono text-sm overflow-x-auto">{geometryResult.lagrangian}</div>
+              </div>
+
+              {/* Partial Derivatives */}
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-purple-100 p-6">
+                <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <span className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center text-white text-sm font-bold">
+                    3
+                  </span>
+                  Частные производные
+                </h2>
+                <div className="space-y-2">
+                  {geometryResult.partialDerivatives.map((pd, i) => (
+                    <div key={i} className="p-3 bg-purple-50 rounded-lg font-mono text-sm">
+                      {pd}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Solution Steps */}
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-purple-100 p-6">
+                <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <span className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center text-white text-sm font-bold">
+                    4
+                  </span>
+                  Решение системы
+                </h2>
+                <div className="space-y-1">
+                  {geometryResult.systemSolution.map((line, i) => (
+                    <div key={i} className={`font-mono text-sm ${line === "" ? "h-2" : "p-2 bg-gray-50 rounded"}`}>
+                      {line}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Hessian Analysis */}
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-purple-100 p-6">
+                <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <span className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center text-white text-sm font-bold">
+                    5
+                  </span>
+                  Анализ условий второго порядка
+                </h2>
+                <div className="space-y-1">
+                  {geometryResult.hessianAnalysis.map((line, i) => (
+                    <div key={i} className={`font-mono text-sm ${line === "" ? "h-2" : "p-2 bg-gray-50 rounded"}`}>
+                      {line}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Critical Point Result */}
+              {geometryResult.criticalPoint && (
+                <div
+                  className={`rounded-2xl shadow-xl p-6 ${
+                    geometryResult.criticalPoint.type === "min"
+                      ? "bg-gradient-to-r from-blue-600 to-cyan-600"
+                      : "bg-gradient-to-r from-green-600 to-emerald-600"
+                  } text-white`}
+                >
+                  <h2 className="text-lg font-semibold mb-4">Оптимальное решение</h2>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {Object.entries(geometryResult.criticalPoint.vars).map(([key, value]) => (
+                      <div key={key} className="p-3 bg-white/20 rounded-xl">
+                        <span className="text-white/80">{key} = </span>
+                        <span className="font-mono font-bold">{value}</span>
+                      </div>
+                    ))}
+                    <div className="p-3 bg-white/20 rounded-xl">
+                      <span className="text-white/80">λ = </span>
+                      <span className="font-mono font-bold">{geometryResult.criticalPoint.lambda}</span>
+                    </div>
+                    <div className="p-3 bg-white/20 rounded-xl">
+                      <span className="text-white/80">S(x*) = </span>
+                      <span className="font-mono font-bold">{geometryResult.criticalPoint.fValue}</span>
+                    </div>
+                  </div>
+                  <div className="mt-4 p-3 bg-white/20 rounded-xl whitespace-pre-line">
+                    <span className="font-semibold">{geometryResult.conclusion}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   )
 }
