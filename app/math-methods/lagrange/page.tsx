@@ -1230,12 +1230,12 @@ export default function LagrangeCalculator() {
                             }`}
                           >
                             {cp.type === "max"
-                              ? "МАКСИМУМ"
+                              ? "МАКС"
                               : cp.type === "min"
-                                ? "МИНИМУМ"
+                                ? "МИН"
                                 : cp.type === "saddle"
-                                  ? "СЕДЛОВАЯ"
-                                  : "НЕ ОПРЕДЕЛЕНО"}
+                                  ? "СЕДЛ"
+                                  : "НЕ ОПР"}
                           </span>
                         </div>
                         <div className="grid grid-cols-2 gap-2 text-sm mb-3">
