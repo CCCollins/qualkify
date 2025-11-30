@@ -492,8 +492,6 @@ export default function LagrangeCalculator() {
         const h_display = `2·∛(${V.toString()}/(2π))`
         const lambda_display = `-2/∛(${V.toString()}/(2π))`
 
-        const S_display = `6π·(${V.toString()}/(2π))^(2/3)`
-
         systemSolution.push(`R = ${R_display}`)
         systemSolution.push(`h = 2R = ${h_display}`)
         systemSolution.push(`λ = -2/R = ${lambda_display}`)
@@ -603,12 +601,7 @@ export default function LagrangeCalculator() {
         // x = ∛(2V)
         const x_cubed = twoV
         const x_cbrt = x_cubed.cbrt()
-        const x_num = Math.cbrt(twoV.toNumber())
-        const y_num = x_num
-        const z_num = x_num / 2
-        const lambda_num = -4 / x_num
-        const S_num = x_num * y_num + 2 * x_num * z_num + 2 * y_num * z_num
-
+        
         // Проверяем, является ли 2V полным кубом
         const isCubeRoot = Number.isInteger(x_cbrt.numerator) && x_cbrt.denominator === 1
 
@@ -840,8 +833,6 @@ export default function LagrangeCalculator() {
                  const Lxx = f.G.mul(2).mul(x2)
                  // Lxy = 2Gx1
                  const Lxy = f.G.mul(2).mul(x1)
-                 // Lyy = 0
-                 const Lyy = new Fraction(0)
                  
                  hessianAnalysis.push(`Вторые производные L:`)
                  hessianAnalysis.push(`Lxx = ${Lxx.toFixed(2)}, Lxy = ${Lxy.toFixed(2)}, Lyy = 0`)
