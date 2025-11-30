@@ -107,14 +107,97 @@ class Fraction {
   }
 
   toString(): string {
-    if (this.denominator === 1) return `${this.numerator}`
-    if (Math.abs(this.denominator) > 1000) {
-      return this.toNumber()
-        .toFixed(4)
-        .replace(/\.?0+$/, "")
+    // Округляем до целых если числа очень близки к целым
+    const roundedNum = Math.round(this.numerator)
+    const roundedDen = Math.round(this.denominator)
+
+    // Если числитель и знаменатель целые (или очень близки к целым)
+    if (Math.abs(this.numerator - roundedNum) < 1e-9 && Math.abs(this.denominator - roundedDen) < 1e-9) {
+      if (roundedDen === 1) return `${roundedNum}`
+      // Сокращаем дробь
+      const common = this.gcd(Math.abs(roundedNum), Math.abs(roundedDen))
+      const n = roundedNum / common
+      const d = roundedDen / common
+      if (d === 1) return `${n}`
+      return `${n}/${d}`
     }
-    return `${this.numerator}/${this.denominator}`
+
+    // Для нецелых чисел - округляем до 4 знаков после запятой
+    return this.toNumber()
+      .toFixed(4)
+      .replace(/\.?0+$/, "")
   }
+
+  toFixed(digits: number): string {
+    return this.toNumber()
+      .toFixed(digits)
+      .replace(/\.?0+$/, "")
+  }
+
+  toStringWithPi(piPower = 0): string {
+    if (piPower === 0) return this.toString()
+    const piStr = piPower === 1 ? "π" : `π${superscript(piPower)}`
+    if (this.numerator === 0) return "0"
+    if (this.denominator === 1) {
+      if (this.numerator === 1) return piStr
+      if (this.numerator === -1) return `-${piStr}`
+      return `${this.numerator}${piStr}`
+    }
+    return `${this.numerator}${piStr}/${this.denominator}`
+  }
+
+  cbrt(): Fraction {
+    const numCbrt = Math.cbrt(this.numerator)
+    const denCbrt = Math.cbrt(this.denominator)
+    if (Number.isInteger(numCbrt) && Number.isInteger(denCbrt)) {
+      return new Fraction(numCbrt, denCbrt)
+    }
+    // Возвращаем приближённое значение как дробь
+    const result = Math.cbrt(this.toNumber())
+    return Fraction.fromDecimal(result)
+  }
+
+  static fromDecimal(val: number, maxDenominator = 1000): Fraction {
+    if (Number.isInteger(val)) return new Fraction(val)
+
+    // Используем алгоритм цепных дробей для нахождения рационального приближения
+    let bestNum = Math.round(val)
+    let bestDen = 1
+    let bestError = Math.abs(val - bestNum)
+
+    for (let d = 2; d <= maxDenominator; d++) {
+      const n = Math.round(val * d)
+      const error = Math.abs(val - n / d)
+      if (error < bestError) {
+        bestNum = n
+        bestDen = d
+        bestError = error
+        if (error < 1e-10) break
+      }
+    }
+
+    return new Fraction(bestNum, bestDen)
+  }
+}
+
+function superscript(n: number): string {
+  const superscripts: Record<string, string> = {
+    "0": "⁰",
+    "1": "¹",
+    "2": "²",
+    "3": "³",
+    "4": "⁴",
+    "5": "⁵",
+    "6": "⁶",
+    "7": "⁷",
+    "8": "⁸",
+    "9": "⁹",
+  }
+  return n
+    .toString()
+    .split("")
+    .map((c) => superscripts[c] || c)
+    .join("")
 }
 
 // --- Типы ---
@@ -136,7 +219,7 @@ interface SolutionResult {
   conclusion: string
 }
 
-// Коэффициенты квадратичной функции: Ax1² + Bx2² + Cx1x2 + Dx1 + Ex2 + F
+// Коэффициенты функции: Ax1² + Bx2² + Cx1x2 + Dx1 + Ex2 + F + Gx1²x2 + Hx1x2²
 interface FunctionCoeffs {
   A: string
   B: string
@@ -144,6 +227,8 @@ interface FunctionCoeffs {
   D: string
   E: string
   F: string
+  G: string // Коэффициент для x₁²x₂
+  H: string // Коэффициент для x₁x₂²
 }
 
 // Коэффициенты ограничения: ax1² + bx2² + cx1x2 + dx1 + ex2 + f = 0
@@ -177,9 +262,9 @@ interface GeometrySolutionResult {
   partialDerivatives: string[]
   systemSolution: string[]
   criticalPoint: {
-    vars: Record<string, number>
-    lambda: number
-    fValue: number
+    vars: Record<string, string>
+    lambda: string
+    fValue: string
     type: "min" | "max"
   } | null
   hessianAnalysis: string[]
@@ -190,25 +275,25 @@ interface GeometrySolutionResult {
 const PRESETS = [
   {
     name: "f = 5 - 3x₁ - 4x₂, x₁² + x₂² = 25",
-    func: { A: "0", B: "0", C: "0", D: "-3", E: "-4", F: "5" },
+    func: { A: "0", B: "0", C: "0", D: "-3", E: "-4", F: "5", G: "0", H: "0" },
     constraint: { a: "1", b: "1", c: "0", d: "0", e: "0", f: "-25" },
     type: "extr" as const,
   },
   {
     name: "f = 1 - 4x₁ - 8x₂, x₁² - 8x₂² = 2",
-    func: { A: "0", B: "0", C: "0", D: "-4", E: "-8", F: "1" },
+    func: { A: "0", B: "0", C: "0", D: "-4", E: "-8", F: "1", G: "0", H: "0" },
     constraint: { a: "1", b: "-8", c: "0", d: "0", e: "0", f: "-2" },
     type: "extr" as const,
   },
   {
     name: "f = 16x₁ + x₁²x₂, x₁ + x₂ = 400",
-    func: { A: "0", B: "0", C: "0", D: "16", E: "0", F: "0" },
+    func: { A: "0", B: "0", C: "0", D: "16", E: "0", F: "0", G: "1", H: "0" },
     constraint: { a: "0", b: "0", c: "0", d: "1", e: "1", f: "-400" },
     type: "extr" as const,
   },
   {
     name: "f = 2x₁ + 4x₂, x₁² + 4x₂² = 8",
-    func: { A: "0", B: "0", C: "0", D: "2", E: "4", F: "0" },
+    func: { A: "0", B: "0", C: "0", D: "2", E: "4", F: "0", G: "0", H: "0" },
     constraint: { a: "1", b: "4", c: "0", d: "0", e: "0", f: "-8" },
     type: "extr" as const,
   },
@@ -260,6 +345,8 @@ export default function LagrangeCalculator() {
     D: new Fraction(c.D || "0"),
     E: new Fraction(c.E || "0"),
     F: new Fraction(c.F || "0"),
+    G: new Fraction(c.G || "0"),
+    H: new Fraction(c.H || "0"),
   })
 
   const parseConstraint = (c: ConstraintCoeffs) => ({
@@ -275,7 +362,21 @@ export default function LagrangeCalculator() {
   const getFuncString = () => {
     const c = parseCoeffs(funcCoeffs)
     const parts: string[] = []
-    if (!c.A.isZero()) parts.push(`${c.A.toString() === "1" ? "" : c.A.toString() === "-1" ? "-" : c.A.toString()}x₁²`)
+
+    // Кубические члены (x₁²x₂ и x₁x₂²)
+    if (!c.G.isZero()) parts.push(`${c.G.toString() === "1" ? "" : c.G.toString() === "-1" ? "-" : c.G.toString()}x₁²x₂`)
+    if (!c.H.isZero()) {
+        const s = c.H.toString()
+        const prefix = s.startsWith("-") ? "" : parts.length ? "+" : ""
+        parts.push(`${prefix}${s === "1" ? "" : s === "-1" ? "-" : s}x₁x₂²`)
+    }
+
+    // Квадратичные и линейные члены
+    if (!c.A.isZero()) {
+        const s = c.A.toString()
+        const prefix = s.startsWith("-") ? "" : parts.length ? "+" : ""
+        parts.push(`${prefix}${s === "1" ? "" : s === "-1" ? "-" : s}x₁²`)
+    }
     if (!c.B.isZero()) {
       const s = c.B.toString()
       const prefix = s.startsWith("-") ? "" : parts.length ? "+" : ""
@@ -342,8 +443,8 @@ export default function LagrangeCalculator() {
     setError(null)
 
     try {
-      const V = Number.parseFloat(constraintValue)
-      if (isNaN(V) || V <= 0) {
+      const V = new Fraction(constraintValue)
+      if (V.toNumber() <= 0) {
         setError("Введите корректное положительное значение ограничения")
         return
       }
@@ -352,14 +453,14 @@ export default function LagrangeCalculator() {
         // Задача: S = 2πR² + 2πRh → min при πR²h = V
         const variables = ["R (радиус)", "h (высота)"]
         const objectiveFunction = "S(R, h) = 2πR² + 2πRh"
-        const constraintFunction = `g(R, h) = πR²h - ${V} = 0`
+        const constraintFunction = `g(R, h) = πR²h - ${V.toString()} = 0`
 
-        const lagrangian = `L(R, h, λ) = 2πR² + 2πRh + λ(πR²h - ${V})`
+        const lagrangian = `L(R, h, λ) = 2πR² + 2πRh + λ(πR²h - ${V.toString()})`
 
         const partialDerivatives = [
           "∂L/∂R = 4πR + 2πh + 2πRhλ = 0",
           "∂L/∂h = 2πR + πR²λ = 0",
-          `∂L/∂λ = πR²h - ${V} = 0`,
+          `∂L/∂λ = πR²h - ${V.toString()} = 0`,
         ]
 
         const systemSolution: string[] = []
@@ -371,21 +472,36 @@ export default function LagrangeCalculator() {
         systemSolution.push("4πR + 2πh + 2πRh·(-2/R) = 0")
         systemSolution.push("4πR + 2πh - 4πh = 0")
         systemSolution.push("4πR - 2πh = 0")
-        systemSolution.push("2R = h")
+        systemSolution.push("h = 2R")
         systemSolution.push("")
-        systemSolution.push(`Подставляем h = 2R в ограничение πR²h = ${V}:`)
-        systemSolution.push(`πR²·(2R) = ${V}`)
-        systemSolution.push(`2πR³ = ${V}`)
-        systemSolution.push(`R³ = ${V}/(2π) = ${(V / (2 * Math.PI)).toFixed(4)}`)
+        systemSolution.push(`Подставляем h = 2R в ограничение πR²h = ${V.toString()}:`)
+        systemSolution.push(`πR²·(2R) = ${V.toString()}`)
+        systemSolution.push(`2πR³ = ${V.toString()}`)
 
-        const R = Math.pow(V / (2 * Math.PI), 1 / 3)
-        const h = 2 * R
-        const lambda = -2 / R
-        const S = 2 * Math.PI * R * R + 2 * Math.PI * R * h
+        systemSolution.push(`R³ = ${V.toString()}/(2π)`)
+        systemSolution.push(`R = ∛(${V.toString()}/(2π))`)
 
-        systemSolution.push(`R = ∛(${V}/(2π)) ≈ ${R.toFixed(4)}`)
-        systemSolution.push(`h = 2R ≈ ${h.toFixed(4)}`)
-        systemSolution.push(`λ = -2/R ≈ ${lambda.toFixed(4)}`)
+        // Для отображения результатов вычисляем числовые значения
+        const R_num = Math.cbrt(V.toNumber() / (2 * Math.PI))
+        const h_num = 2 * R_num
+        const lambda_num = -2 / R_num
+        const S_num = 2 * Math.PI * R_num * R_num + 2 * Math.PI * R_num * h_num
+
+        // Представляем результаты через корни и π
+        const R_display = `∛(${V.toString()}/(2π))`
+        const h_display = `2·∛(${V.toString()}/(2π))`
+        const lambda_display = `-2/∛(${V.toString()}/(2π))`
+
+        const S_display = `6π·(${V.toString()}/(2π))^(2/3)`
+
+        systemSolution.push(`R = ${R_display}`)
+        systemSolution.push(`h = 2R = ${h_display}`)
+        systemSolution.push(`λ = -2/R = ${lambda_display}`)
+        systemSolution.push("")
+        systemSolution.push("Численные значения:")
+        systemSolution.push(`R ≈ ${R_num.toFixed(4).replace(/\.?0+$/, "")}`)
+        systemSolution.push(`h ≈ ${h_num.toFixed(4).replace(/\.?0+$/, "")}`)
+        systemSolution.push(`λ ≈ ${lambda_num.toFixed(4).replace(/\.?0+$/, "")}`)
 
         const hessianAnalysis: string[] = []
         hessianAnalysis.push("Проверка условий второго порядка:")
@@ -393,26 +509,27 @@ export default function LagrangeCalculator() {
         hessianAnalysis.push("∂²L/∂h² = 0")
         hessianAnalysis.push("∂²L/∂R∂h = 2π + 2πRλ = 2π(1 + Rλ) = 2π(1 - 2) = -2π")
         hessianAnalysis.push("")
-        hessianAnalysis.push(`При R = ${R.toFixed(4)}, h = ${h.toFixed(4)}, λ = ${lambda.toFixed(4)}:`)
-        const d2L_dR2 = 4 * Math.PI + 2 * Math.PI * h * lambda
-        hessianAnalysis.push(`∂²L/∂R² = 4π + 2π·${h.toFixed(2)}·(${lambda.toFixed(4)}) = ${d2L_dR2.toFixed(4)}`)
+        hessianAnalysis.push(`При найденных значениях R, h, λ:`)
+        const d2L_dR2 = 4 * Math.PI + 2 * Math.PI * h_num * lambda_num
+        const d2L_dR2_coeff = d2L_dR2 / Math.PI
+        hessianAnalysis.push(`∂²L/∂R² = 4π + 2πh·λ ≈ ${d2L_dR2_coeff.toFixed(4).replace(/\.?0+$/, "")}π`)
         hessianAnalysis.push("")
         hessianAnalysis.push("Окаймлённый Гессиан:")
         hessianAnalysis.push("     | 0    gR    gh  |")
         hessianAnalysis.push("H̄ = | gR   LRR   LRh |")
         hessianAnalysis.push("     | gh   LhR   Lhh |")
         hessianAnalysis.push("")
-        const gR = 2 * Math.PI * R * h
-        const gh = Math.PI * R * R
-        hessianAnalysis.push(`gR = ∂g/∂R = 2πRh = ${gR.toFixed(4)}`)
-        hessianAnalysis.push(`gh = ∂g/∂h = πR² = ${gh.toFixed(4)}`)
-        const detH = -(gR * gR * 0 - 2 * gR * gh * (-2 * Math.PI) + gh * gh * d2L_dR2)
+        const gR_num = 2 * Math.PI * R_num * h_num
+        const gh_num = Math.PI * R_num * R_num
+        const gR_coeff = gR_num / Math.PI
+        const gh_coeff = gh_num / Math.PI
+        hessianAnalysis.push(`gR = ∂g/∂R = 2πRh ≈ ${gR_coeff.toFixed(4).replace(/\.?0+$/, "")}π`)
+        hessianAnalysis.push(`gh = ∂g/∂h = πR² ≈ ${gh_coeff.toFixed(4).replace(/\.?0+$/, "")}π`)
+        const detH = -(gR_num * gR_num * 0 - 2 * gR_num * gh_num * (-2 * Math.PI) + gh_num * gh_num * d2L_dR2)
+        const detH_coeff = detH / (Math.PI * Math.PI * Math.PI)
         hessianAnalysis.push("")
         hessianAnalysis.push(`det(H̄) = -gR²·Lhh + 2·gR·gh·LRh - gh²·LRR`)
-        hessianAnalysis.push(
-          `det(H̄) = 2·${gR.toFixed(2)}·${gh.toFixed(2)}·(-2π) - ${(gh * gh).toFixed(2)}·${d2L_dR2.toFixed(4)}`,
-        )
-        hessianAnalysis.push(`det(H̄) ≈ ${detH.toFixed(4)}`)
+        hessianAnalysis.push(`det(H̄) ≈ ${detH_coeff.toFixed(4).replace(/\.?0+$/, "")}π³`)
         hessianAnalysis.push("")
         if (detH > 0) {
           hessianAnalysis.push("det(H̄) > 0 при n-m = 1 нечётное ⟹ МИНИМУМ")
@@ -420,8 +537,10 @@ export default function LagrangeCalculator() {
           hessianAnalysis.push("det(H̄) < 0 ⟹ требуется дополнительный анализ")
         }
 
+        const S_coeff = S_num / Math.PI
+
         setGeometryResult({
-          problem: `Минимизация площади поверхности цилиндра при V = ${V}`,
+          problem: `Минимизация площади поверхности цилиндра при V = ${V.toString()}`,
           variables,
           objectiveFunction,
           constraintFunction,
@@ -429,27 +548,30 @@ export default function LagrangeCalculator() {
           partialDerivatives,
           systemSolution,
           criticalPoint: {
-            vars: { R, h },
-            lambda,
-            fValue: S,
+            vars: {
+              R: `∛(${V.toString()}/(2π)) ≈ ${R_num.toFixed(4).replace(/\.?0+$/, "")}`,
+              h: `2R ≈ ${h_num.toFixed(4).replace(/\.?0+$/, "")}`,
+            },
+            lambda: `${lambda_num.toFixed(4).replace(/\.?0+$/, "")}`,
+            fValue: `${S_coeff.toFixed(4).replace(/\.?0+$/, "")}π ≈ ${S_num.toFixed(4).replace(/\.?0+$/, "")}`,
             type: "min",
           },
           hessianAnalysis,
-          conclusion: `Оптимальные размеры цилиндра:\nR ≈ ${R.toFixed(4)}\nh ≈ ${h.toFixed(4)}\nМинимальная площадь S ≈ ${S.toFixed(4)}`,
+          conclusion: `Оптимальные размеры цилиндра:\nR = ∛(${V.toString()}/(2π)) ≈ ${R_num.toFixed(4).replace(/\.?0+$/, "")}\nh = 2R ≈ ${h_num.toFixed(4).replace(/\.?0+$/, "")}\nМинимальная площадь S ≈ ${S_num.toFixed(4).replace(/\.?0+$/, "")}`,
         })
       } else if (geometryType === "box") {
         // Задача: S = xy + 2xz + 2yz → min при xyz = V (открытый ящик)
         const variables = ["x (длина)", "y (ширина)", "z (высота)"]
         const objectiveFunction = "S(x, y, z) = xy + 2xz + 2yz"
-        const constraintFunction = `g(x, y, z) = xyz - ${V} = 0`
+        const constraintFunction = `g(x, y, z) = xyz - ${V.toString()} = 0`
 
-        const lagrangian = `L(x, y, z, λ) = xy + 2xz + 2yz + λ(xyz - ${V})`
+        const lagrangian = `L(x, y, z, λ) = xy + 2xz + 2yz + λ(xyz - ${V.toString()})`
 
         const partialDerivatives = [
           "∂L/∂x = y + 2z + λyz = 0",
           "∂L/∂y = x + 2z + λxz = 0",
           "∂L/∂z = 2x + 2y + λxy = 0",
-          `∂L/∂λ = xyz - ${V} = 0`,
+          `∂L/∂λ = xyz - ${V.toString()} = 0`,
         ]
 
         const systemSolution: string[] = []
@@ -471,21 +593,46 @@ export default function LagrangeCalculator() {
         systemSolution.push("x - 4z = -2z")
         systemSolution.push("x = 2z")
         systemSolution.push("")
-        systemSolution.push(`Подставляем x = y и x = 2z в ограничение xyz = ${V}:`)
-        systemSolution.push(`x · x · (x/2) = ${V}`)
-        systemSolution.push(`x³/2 = ${V}`)
-        systemSolution.push(`x³ = ${2 * V}`)
+        systemSolution.push(`Подставляем x = y и x = 2z в ограничение xyz = ${V.toString()}:`)
+        systemSolution.push(`x · x · (x/2) = ${V.toString()}`)
+        systemSolution.push(`x³/2 = ${V.toString()}`)
 
-        const x = Math.pow(2 * V, 1 / 3)
-        const y = x
-        const z = x / 2
-        const lambda = -4 / x
-        const S = x * y + 2 * x * z + 2 * y * z
+        const twoV = V.mul(2)
+        systemSolution.push(`x³ = ${twoV.toString()}`)
 
-        systemSolution.push(`x = ∛(${2 * V}) ≈ ${x.toFixed(4)}`)
-        systemSolution.push(`y = x ≈ ${y.toFixed(4)}`)
-        systemSolution.push(`z = x/2 ≈ ${z.toFixed(4)}`)
-        systemSolution.push(`λ = -4/x ≈ ${lambda.toFixed(4)}`)
+        // x = ∛(2V)
+        const x_cubed = twoV
+        const x_cbrt = x_cubed.cbrt()
+        const x_num = Math.cbrt(twoV.toNumber())
+        const y_num = x_num
+        const z_num = x_num / 2
+        const lambda_num = -4 / x_num
+        const S_num = x_num * y_num + 2 * x_num * z_num + 2 * y_num * z_num
+
+        // Проверяем, является ли 2V полным кубом
+        const isCubeRoot = Number.isInteger(x_cbrt.numerator) && x_cbrt.denominator === 1
+
+        const x_display = isCubeRoot ? x_cbrt.toString() : `∛${twoV.toString()}`
+        const y_display = x_display
+        const z_display = isCubeRoot ? new Fraction(x_cbrt.numerator, 2).toString() : `∛${twoV.toString()}/2`
+        const lambda_display = isCubeRoot ? new Fraction(-4, x_cbrt.numerator).toString() : `-4/∛${twoV.toString()}`
+
+        systemSolution.push(`x = ∛${twoV.toString()} = ${x_display}`)
+        systemSolution.push(`y = x = ${y_display}`)
+        systemSolution.push(`z = x/2 = ${z_display}`)
+        systemSolution.push(`λ = -4/x = ${lambda_display}`)
+
+        // Вычисляем S в дробях если возможно
+        // S = xy + 2xz + 2yz = x² + 2·x·(x/2) + 2·x·(x/2) = x² + x² + x² = 3x²
+        // S = 3 · (∛(2V))² = 3 · ∛(4V²)
+        let S_display: string
+        if (isCubeRoot) {
+          const S_frac = x_cbrt.pow(2).mul(3)
+          S_display = S_frac.toString()
+        } else {
+          const fourV2 = V.pow(2).mul(4)
+          S_display = `3·∛${fourV2.toString()}`
+        }
 
         const hessianAnalysis: string[] = []
         hessianAnalysis.push("Условия второго порядка для задачи с 3 переменными")
@@ -497,7 +644,7 @@ export default function LagrangeCalculator() {
         hessianAnalysis.push("то найденная точка — глобальный минимум.")
 
         setGeometryResult({
-          problem: `Минимизация площади открытого ящика при V = ${V}`,
+          problem: `Минимизация площади открытого ящика при V = ${V.toString()}`,
           variables,
           objectiveFunction,
           constraintFunction,
@@ -505,13 +652,17 @@ export default function LagrangeCalculator() {
           partialDerivatives,
           systemSolution,
           criticalPoint: {
-            vars: { x, y, z },
-            lambda,
-            fValue: S,
+            vars: {
+              x: x_display,
+              y: y_display,
+              z: z_display,
+            },
+            lambda: lambda_display,
+            fValue: S_display,
             type: "min",
           },
           hessianAnalysis,
-          conclusion: `Оптимальные размеры ящика:\nx ≈ ${x.toFixed(4)}\ny ≈ ${y.toFixed(4)}\nz ≈ ${z.toFixed(4)}\nМинимальная площадь S ≈ ${S.toFixed(4)}`,
+          conclusion: `Оптимальные размеры ящика:\nx = ${x_display}\ny = ${y_display}\nz = ${z_display}\nМинимальная площадь S = ${S_display}`,
         })
       }
     } catch (e) {
@@ -534,6 +685,10 @@ export default function LagrangeCalculator() {
 
       // dL/dx1
       const dLdx1_parts: string[] = []
+      // Кубические члены (производные)
+      if (!f.G.isZero()) dLdx1_parts.push(`${f.G.mul(2).toString()}x₁x₂`) // d(x1^2x2)/dx1 = 2x1x2
+      if (!f.H.isZero()) dLdx1_parts.push(`${f.H.toString()}x₂²`) // d(x1x2^2)/dx1 = x2^2
+
       if (!f.A.isZero()) dLdx1_parts.push(`${f.A.mul(2).toString()}x₁`)
       if (!f.C.isZero()) dLdx1_parts.push(`${f.C.toString()}x₂`)
       if (!f.D.isZero()) dLdx1_parts.push(`${f.D.toString()}`)
@@ -548,6 +703,10 @@ export default function LagrangeCalculator() {
 
       // dL/dx2
       const dLdx2_parts: string[] = []
+      // Кубические члены (производные)
+      if (!f.G.isZero()) dLdx2_parts.push(`${f.G.toString()}x₁²`) // d(x1^2x2)/dx2 = x1^2
+      if (!f.H.isZero()) dLdx2_parts.push(`${f.H.mul(2).toString()}x₁x₂`) // d(x1x2^2)/dx2 = 2x1x2
+
       if (!f.B.isZero()) dLdx2_parts.push(`${f.B.mul(2).toString()}x₂`)
       if (!f.C.isZero()) dLdx2_parts.push(`${f.C.toString()}x₁`)
       if (!f.E.isZero()) dLdx2_parts.push(`${f.E.toString()}`)
@@ -566,12 +725,159 @@ export default function LagrangeCalculator() {
       const systemSolution: string[] = []
       const criticalPoints: CriticalPoint[] = []
 
-      // Проверяем тип задачи
-      const isLinearF = f.A.isZero() && f.B.isZero() && f.C.isZero()
+      // Определяем тип задачи
+      const isLinearF = f.A.isZero() && f.B.isZero() && f.C.isZero() && f.G.isZero() && f.H.isZero()
       const isQuadraticG = !g.a.isZero() || !g.b.isZero()
+      const isLinearG = g.a.isZero() && g.b.isZero() && g.c.isZero()
+      const isCubicF = !f.G.isZero() || !f.H.isZero()
 
-      if (isLinearF && isQuadraticG && g.c.isZero() && g.d.isZero() && g.e.isZero()) {
-        systemSolution.push("Тип задачи: линейная ЦФ с квадратичным ограничением")
+      // --- СЛУЧАЙ 1: Линейная ЦФ + Линейное ограничение ---
+      if (isLinearF && isLinearG) {
+        systemSolution.push("Тип задачи: линейная ЦФ с линейным ограничением")
+        systemSolution.push("")
+        systemSolution.push("Для линейной функции f = Dx₁ + Ex₂ + F")
+        systemSolution.push("с линейным ограничением dx₁ + ex₂ + f = 0")
+        systemSolution.push("метод Лагранжа даёт:")
+        systemSolution.push("")
+        systemSolution.push(`∂L/∂x₁ = ${f.D.toString()} + λ·${g.d.toString()} = 0`)
+        systemSolution.push(`∂L/∂x₂ = ${f.E.toString()} + λ·${g.e.toString()} = 0`)
+        systemSolution.push("")
+
+        // Проверяем, можно ли найти λ
+        if (!g.d.isZero() && !g.e.isZero()) {
+          const lambda1 = f.D.neg().div(g.d)
+          const lambda2 = f.E.neg().div(g.e)
+          systemSolution.push(`Из (1): λ = ${lambda1.toString()}`)
+          systemSolution.push(`Из (2): λ = ${lambda2.toString()}`)
+
+          if (Math.abs(lambda1.toNumber() - lambda2.toNumber()) < 1e-9) {
+            systemSolution.push("")
+            systemSolution.push("λ₁ = λ₂ ⟹ бесконечно много решений")
+            systemSolution.push("Любая точка на прямой ограничения является решением")
+          } else {
+            systemSolution.push("")
+            systemSolution.push("λ₁ ≠ λ₂ ⟹ система несовместна")
+            systemSolution.push("Экстремум на бесконечности")
+          }
+        }
+
+        setResult({
+          lagrangian,
+          partialDerivatives,
+          systemSolution,
+          criticalPoints: [],
+          conclusion: "Линейная задача: экстремум не ограничен или бесконечно много решений",
+        })
+        return
+      }
+
+      // --- СЛУЧАЙ 2: Кубическая/Смешанная ЦФ (как в примере 3) + Линейное ограничение ---
+      // Специфично для формы f = G x1^2 x2 + D x1, g = d x1 + e x2 + f = 0
+      if (!f.G.isZero() && f.H.isZero() && isLinearG && !g.d.isZero() && !g.e.isZero()) {
+         systemSolution.push("Тип задачи: Оптимизация смешанной функции (типа Кобба-Дугласа) с бюджетным ограничением")
+         // Уравнения:
+         // 1) 2Gx1x2 + D + λd = 0
+         // 2) Gx1^2 + λe = 0  => λ = -Gx1^2 / e
+         
+         systemSolution.push(`Из уравнения ∂L/∂x₂: ${f.G.toString()}x₁² + λ${g.e.toString()} = 0`)
+         systemSolution.push(`λ = -${f.G.div(g.e).toString()}x₁²`)
+         
+         systemSolution.push("Подставляем λ в уравнение ∂L/∂x₁:")
+         // 2Gx1x2 + D + d(-Gx1^2/e) = 0
+         systemSolution.push(`${f.G.mul(2).toString()}x₁x₂ + ${f.D.toString()} - (${g.d.toString()}·${f.G.toString()}/${g.e.toString()})x₁² = 0`)
+         
+         // Выражаем x2 из ограничения: x2 = (-f - dx1)/e
+         const minusF = g.f.neg()
+         const dOverE = g.d.div(g.e)
+         const constTermX2 = minusF.div(g.e)
+         const x2Expr = `${constTermX2.toString()} - ${dOverE.toString()}x₁`
+         
+         systemSolution.push(`Из ограничения выражаем x₂: x₂ = ${x2Expr}`)
+         systemSolution.push(`Подставляем x₂ в преобразованное уравнение производной:`)
+         
+         // Подстановка и упрощение
+         // Коэффициенты квадратного уравнения ax^2 + bx + c = 0
+         const coeffX1Sq = f.G.mul(dOverE).mul(-3) // -3 * G * (d/e)
+         const coeffX1 = f.G.mul(constTermX2).mul(2) // 2 * G * (-f/e)
+         const coeffFree = f.D
+         
+         systemSolution.push(`Получаем квадратное уравнение для x₁:`)
+         systemSolution.push(`(${coeffX1Sq.toString()})x₁² + (${coeffX1.toString()})x₁ + ${coeffFree.toString()} = 0`)
+         
+         // Решаем квадратное уравнение
+         const a_eq = coeffX1Sq.toNumber()
+         const b_eq = coeffX1.toNumber()
+         const c_eq = coeffFree.toNumber()
+         const D_disc = b_eq*b_eq - 4*a_eq*c_eq
+         
+         if (D_disc < 0) {
+             systemSolution.push(`Дискриминант D = ${D_disc.toFixed(2)} < 0, действительных решений нет`)
+         } else {
+             const x1_1_val = (-b_eq + Math.sqrt(D_disc)) / (2 * a_eq)
+             const x1_2_val = (-b_eq - Math.sqrt(D_disc)) / (2 * a_eq)
+             
+             const roots = [x1_1_val]
+             if (Math.abs(x1_1_val - x1_2_val) > 1e-9) roots.push(x1_2_val)
+             
+             for (const x1_val of roots) {
+                 const x1 = Fraction.fromDecimal(x1_val)
+                 // Находим x2
+                 const x2_val = constTermX2.toNumber() - dOverE.toNumber() * x1_val
+                 const x2 = Fraction.fromDecimal(x2_val)
+                 
+                 // Находим lambda
+                 const lambda_val = -(f.G.toNumber() * x1_val * x1_val) / g.e.toNumber()
+                 const lambda = Fraction.fromDecimal(lambda_val)
+                 
+                 // Находим значение функции
+                 const term1 = f.G.toNumber() * x1_val * x1_val * x2_val
+                 const term2 = f.D.toNumber() * x1_val
+                 const fValue = Fraction.fromDecimal(term1 + term2)
+                 
+                 // Анализ Гессиана
+                 const hessianAnalysis: string[] = []
+                 // Lxx = 2Gx2
+                 const Lxx = f.G.mul(2).mul(x2)
+                 // Lxy = 2Gx1
+                 const Lxy = f.G.mul(2).mul(x1)
+                 // Lyy = 0
+                 const Lyy = new Fraction(0)
+                 
+                 hessianAnalysis.push(`Вторые производные L:`)
+                 hessianAnalysis.push(`Lxx = ${Lxx.toFixed(2)}, Lxy = ${Lxy.toFixed(2)}, Lyy = 0`)
+                 
+                 // Окаймленный Гессиан
+                 // | 0  d  e |
+                 // | d Lxx Lxy|
+                 // | e Lyx Lyy|
+                 // det = 2de*Lxy - e^2*Lxx - d^2*Lyy
+                 const detH_val = 2 * g.d.toNumber() * g.e.toNumber() * Lxy.toNumber() - Math.pow(g.e.toNumber(), 2) * Lxx.toNumber()
+                 
+                 hessianAnalysis.push(`det(H̄) ≈ ${detH_val.toFixed(2)}`)
+                 
+                 let type: "max" | "min" | "saddle" | "unknown" = "unknown"
+                 if (detH_val > 0) {
+                     type = "max"
+                     hessianAnalysis.push("det(H̄) > 0 ⟹ МАКСИМУМ")
+                 } else if (detH_val < 0) {
+                     type = "min"
+                     hessianAnalysis.push("det(H̄) < 0 ⟹ МИНИМУМ")
+                 } else {
+                     hessianAnalysis.push("det(H̄) = 0 ⟹ Необходим доп. анализ")
+                 }
+                 
+                 criticalPoints.push({
+                     x1, x2, lambda, type, fValue,
+                     d2L: `Hessian Matrix det=${detH_val.toFixed(2)}`, 
+                     hessianAnalysis
+                 })
+             }
+         }
+      }
+
+      // --- СЛУЧАЙ 3: Линейная ЦФ + Квадратичное ограничение (стандартный случай) ---
+      else if (isLinearF && !isCubicF && isQuadraticG && g.c.isZero() && g.d.isZero() && g.e.isZero()) {
+        systemSolution.push("Тип задачи: линейная ЦФ с квадратичным ограничением (центр в 0)")
         systemSolution.push(`Из ∂L/∂x₁ = 0: ${f.D.toString()} + ${g.a.mul(2).toString()}λx₁ = 0`)
         systemSolution.push(`x₁ = ${f.D.neg().toString()}/(${g.a.mul(2).toString()}λ)`)
         systemSolution.push(`Из ∂L/∂x₂ = 0: ${f.E.toString()} + ${g.b.mul(2).toString()}λx₂ = 0`)
@@ -594,7 +900,8 @@ export default function LagrangeCalculator() {
         systemSolution.push(`λ² = ${lambda2.toString()}`)
 
         const lambdaVal = Math.sqrt(Math.abs(lambda2.toNumber()))
-        systemSolution.push(`λ = ±${lambdaVal.toFixed(4)}`)
+        const lambdaFrac = Fraction.fromDecimal(lambdaVal)
+        systemSolution.push(`λ = ±${lambdaFrac.toString()}`)
 
         for (const sign of [1, -1]) {
           const lambda = new Fraction(sign * lambdaVal)
@@ -607,7 +914,7 @@ export default function LagrangeCalculator() {
           const d2L_x2 = g.b.mul(2).mul(lambda)
 
           const hessianAnalysis: string[] = []
-          hessianAnalysis.push(`λ = ${lambda.toString()}`)
+          hessianAnalysis.push(`При λ = ${lambda.toString()}:`)
           hessianAnalysis.push(`∂²L/∂x₁² = 2a·λ = ${d2L_x1.toString()}`)
           hessianAnalysis.push(`∂²L/∂x₂² = 2b·λ = ${d2L_x2.toString()}`)
 
@@ -616,23 +923,23 @@ export default function LagrangeCalculator() {
 
           if (d2L_x1.isPositive() && d2L_x2.isPositive()) {
             type = "min"
-            hessianAnalysis.push(`d²L > 0 при всех dx ≠ 0 ⟹ минимум`)
+            hessianAnalysis.push(`d²L > 0 (форма положительно определена) ⟹ минимум`)
           } else if (d2L_x1.isNegative() && d2L_x2.isNegative()) {
             type = "max"
-            hessianAnalysis.push(`d²L < 0 при всех dx ≠ 0 ⟹ максимум`)
+            hessianAnalysis.push(`d²L < 0 (форма отрицательно определена) ⟹ максимум`)
           } else {
             const ratio = g.a.mul(x1).div(g.b.mul(x2)).neg()
             const d2L_constrained = d2L_x1.add(d2L_x2.mul(ratio.pow(2)))
-            hessianAnalysis.push(`d²L_constrained = ${d2L_constrained.toString()}`)
+            hessianAnalysis.push(`d²L_огранич = ${d2L_constrained.toString()}`)
 
             if (d2L_constrained.isPositive()) {
               type = "min"
-              hessianAnalysis.push("d²L_constrained > 0 ⟹ минимум")
+              hessianAnalysis.push("d²L_огранич > 0 ⟹ минимум")
             } else if (d2L_constrained.isNegative()) {
               type = "max"
-              hessianAnalysis.push("d²L_constrained < 0 ⟹ максимум")
+              hessianAnalysis.push("d²L_огранич < 0 ⟹ максимум")
             } else {
-              hessianAnalysis.push("d²L_constrained = 0 ⟹ седловая точка")
+              hessianAnalysis.push("d²L_огранич = 0 ⟹ седловая точка")
             }
           }
 
@@ -646,6 +953,12 @@ export default function LagrangeCalculator() {
             hessianAnalysis,
           })
         }
+      } else {
+          // Если мы попали сюда и criticalPoints пуст, значит случай не обработан
+          if (criticalPoints.length === 0) {
+             systemSolution.push("Данный тип задачи (общая нелинейная система) требует численных методов решения,")
+             systemSolution.push("которые выходят за рамки текущей реализации.")
+          }
       }
 
       setResult({
@@ -653,7 +966,7 @@ export default function LagrangeCalculator() {
         partialDerivatives,
         systemSolution,
         criticalPoints,
-        conclusion: criticalPoints.length > 0 ? "Критические точки найдены" : "Нет критических точек",
+        conclusion: criticalPoints.length > 0 ? "Критические точки найдены" : "Решение не найдено или тип задачи пока не поддерживается",
       })
     } catch (e) {
       setError(e instanceof Error ? e.message : "Ошибка вычислений")
@@ -661,7 +974,7 @@ export default function LagrangeCalculator() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50">
+    <main className="min-h-screen">
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
         {/* Header */}
         <div className="flex justify-center items-center mb-6">
@@ -677,7 +990,7 @@ export default function LagrangeCalculator() {
           </h1>
         </div>
 
-        {/* Tab Switcher - ZLO style centered buttons */}
+        {/* Tab Switcher */}
         <div className="flex text-xs sm:text-sm md:text-base font-bold gap-1 sm:gap-3 flex-wrap justify-center">
           <button
             onClick={() => setActiveTab("quadratic")}
@@ -687,7 +1000,7 @@ export default function LagrangeCalculator() {
                 : "bg-gray-100 text-gray-800 hover:bg-gray-200"
             }`}
           >
-            Квадратичные задачи
+            Алгебраические задачи
           </button>
           <button
             onClick={() => setActiveTab("geometry")}
@@ -706,16 +1019,9 @@ export default function LagrangeCalculator() {
           <div className="space-y-6">
             {/* Input Card */}
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-purple-100 p-6">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <span className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center text-white text-sm font-bold">
-                  1
-                </span>
-                Ввод данных
-              </h2>
 
               {/* Presets */}
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-600 mb-2">Готовые примеры:</label>
                 <div className="flex flex-wrap gap-2">
                   {PRESETS.map((preset, idx) => (
                     <button
@@ -737,43 +1043,80 @@ export default function LagrangeCalculator() {
               {/* Target Function */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-600 mb-2">
-                  Целевая функция f(x₁, x₂) = Ax₁² + Bx₂² + Cx₁x₂ + Dx₁ + Ex₂ + F → extr
+                  Целевая функция f(x₁, x₂) → extr
                 </label>
-                <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-                  {(["A", "B", "C", "D", "E", "F"] as const).map((key) => (
-                    <div key={key}>
-                      <label className="block text-xs text-gray-500 mb-1">{key}</label>
+                <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
+                    {/* Кубические члены */}
+                    <div className="col-span-1">
+                        <label className="block text-[10px] text-gray-500 text-center mb-1">x₁²x₂</label>
+                        <input
+                            type="text"
+                            value={funcCoeffs.G}
+                            onChange={(e) => setFuncCoeffs({ ...funcCoeffs, G: e.target.value })}
+                            className="w-full px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 text-center text-sm"
+                            placeholder="0"
+                        />
+                    </div>
+                    <div className="col-span-1">
+                        <label className="block text-[10px] text-gray-500 text-center mb-1">x₁x₂²</label>
+                        <input
+                            type="text"
+                            value={funcCoeffs.H}
+                            onChange={(e) => setFuncCoeffs({ ...funcCoeffs, H: e.target.value })}
+                            className="w-full px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 text-center text-sm"
+                            placeholder="0"
+                        />
+                    </div>
+                    
+                    {/* Квадратичные и линейные члены */}
+                    {(["A", "B", "C", "D", "E", "F"] as const).map((key) => (
+                    <div key={key} className="col-span-1">
+                      <label className="block text-[10px] text-gray-500 text-center mb-1">
+                          {key === 'A' ? 'x₁²' : 
+                           key === 'B' ? 'x₂²' : 
+                           key === 'C' ? 'x₁x₂' : 
+                           key === 'D' ? 'x₁' : 
+                           key === 'E' ? 'x₂' : 'Const'}
+                      </label>
                       <input
                         type="text"
                         value={funcCoeffs[key]}
                         onChange={(e) => setFuncCoeffs({ ...funcCoeffs, [key]: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-center"
+                        className="w-full px-2 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 text-center text-sm"
+                        placeholder="0"
                       />
                     </div>
                   ))}
                 </div>
-                <div className="mt-2 text-sm text-purple-600 font-medium">f(x₁, x₂) = {getFuncString()} → extr</div>
+                <div className="mt-2 text-sm text-purple-600 font-medium text-center">f(x₁, x₂) = {getFuncString()}</div>
               </div>
 
               {/* Constraint */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-600 mb-2">
-                  Ограничение g(x₁, x₂) = ax₁² + bx₂² + cx₁x₂ + dx₁ + ex₂ + f = 0
+                  Ограничение g(x₁, x₂) = 0
                 </label>
                 <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
                   {(["a", "b", "c", "d", "e", "f"] as const).map((key) => (
                     <div key={key}>
-                      <label className="block text-xs text-gray-500 mb-1">{key}</label>
+                      <label className="block text-xs text-gray-500 text-center mb-1">
+                           {key === 'a' ? 'x₁²' : 
+                           key === 'b' ? 'x₂²' : 
+                           key === 'c' ? 'x₁x₂' : 
+                           key === 'd' ? 'x₁' : 
+                           key === 'e' ? 'x₂' : 'Const'}
+                      </label>
                       <input
                         type="text"
                         value={constraintCoeffs[key]}
                         onChange={(e) => setConstraintCoeffs({ ...constraintCoeffs, [key]: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-center"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 text-center"
+                        placeholder="0"
                       />
                     </div>
                   ))}
                 </div>
-                <div className="mt-2 text-sm text-purple-600 font-medium">g(x₁, x₂) = {getConstraintString()}</div>
+                <div className="mt-2 text-sm text-purple-600 font-medium text-center">{getConstraintString()}</div>
               </div>
 
               <button
@@ -797,14 +1140,14 @@ export default function LagrangeCalculator() {
                   >
                     <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
                       <span className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center text-white text-sm font-bold">
-                        2
+                        1
                       </span>
                       Функция Лагранжа
                     </h2>
                     <span className="text-purple-500">{expandedSteps.lagrangian ? "▼" : "▶"}</span>
                   </button>
                   {expandedSteps.lagrangian && (
-                    <div className="mt-4 p-4 bg-purple-50 rounded-xl font-mono text-sm">{result.lagrangian}</div>
+                    <div className="mt-4 p-4 bg-purple-50 rounded-xl font-mono text-sm overflow-x-auto">{result.lagrangian}</div>
                   )}
                 </div>
 
@@ -816,9 +1159,9 @@ export default function LagrangeCalculator() {
                   >
                     <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
                       <span className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center text-white text-sm font-bold">
-                        3
+                        2
                       </span>
-                      Частные производные (условия первого порядка)
+                      Частные производные
                     </h2>
                     <span className="text-purple-500">{expandedSteps.derivatives ? "▼" : "▶"}</span>
                   </button>
@@ -841,7 +1184,7 @@ export default function LagrangeCalculator() {
                   >
                     <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
                       <span className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center text-white text-sm font-bold">
-                        4
+                        3
                       </span>
                       Решение системы
                     </h2>
@@ -866,9 +1209,9 @@ export default function LagrangeCalculator() {
                   >
                     <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
                       <span className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center text-white text-sm font-bold">
-                        5
+                        4
                       </span>
-                      Анализ критических точек (условия второго порядка)
+                      Анализ критических точек
                     </h2>
                     <span className="text-purple-500">{expandedSteps.analysis ? "▼" : "▶"}</span>
                   </button>
@@ -922,7 +1265,7 @@ export default function LagrangeCalculator() {
                             </div>
                           </div>
                           <div className="text-sm space-y-1">
-                            <div className="font-medium text-gray-600">Анализ d²L:</div>
+                            <div className="font-medium text-gray-600">Анализ второго порядка:</div>
                             {cp.hessianAnalysis.map((line, i) => (
                               <div key={i} className="font-mono text-xs p-1 bg-white/50 rounded">
                                 {line}
@@ -950,12 +1293,6 @@ export default function LagrangeCalculator() {
           <div className="space-y-6">
             {/* Input Card */}
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-purple-100 p-6">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <span className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center text-white text-sm font-bold">
-                  1
-                </span>
-                Выбор задачи
-              </h2>
 
               {/* Geometry Presets */}
               <div className="grid md:grid-cols-2 gap-4 mb-6">
@@ -985,7 +1322,7 @@ export default function LagrangeCalculator() {
                     <p className="text-sm text-gray-600 mb-2">{preset.description}</p>
                     <div className="text-xs font-mono text-purple-600">
                       <div>{preset.objective}</div>
-                      <div>{preset.constraint} = V</div>
+                      <div>{preset.constraint}</div>
                     </div>
                   </button>
                 ))}
@@ -993,9 +1330,11 @@ export default function LagrangeCalculator() {
 
               {/* Constraint Value Input */}
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-600 mb-2">Значение объёма V:</label>
+                <label className="block text-sm font-medium text-gray-600 mb-2">
+                  Значение объёма V (можно ввести дробь, например 32 или 1/2):
+                </label>
                 <input
-                  type="number"
+                  type="text"
                   value={constraintValue}
                   onChange={(e) => setConstraintValue(e.target.value)}
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
@@ -1020,7 +1359,7 @@ export default function LagrangeCalculator() {
                 <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-purple-100 p-6">
                   <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
                     <span className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center text-white text-sm font-bold">
-                      2
+                      1
                     </span>
                     Постановка задачи
                   </h2>
@@ -1034,18 +1373,18 @@ export default function LagrangeCalculator() {
                 <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-purple-100 p-6">
                   <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
                     <span className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center text-white text-sm font-bold">
-                      3
+                      2
                     </span>
                     Функция Лагранжа
                   </h2>
-                  <div className="p-4 bg-purple-50 rounded-xl font-mono text-sm">{geometryResult.lagrangian}</div>
+                  <div className="p-4 bg-purple-50 rounded-xl font-mono text-sm overflow-x-auto">{geometryResult.lagrangian}</div>
                 </div>
 
                 {/* Partial Derivatives */}
                 <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-purple-100 p-6">
                   <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
                     <span className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center text-white text-sm font-bold">
-                      4
+                      3
                     </span>
                     Частные производные
                   </h2>
@@ -1062,7 +1401,7 @@ export default function LagrangeCalculator() {
                 <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-purple-100 p-6">
                   <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
                     <span className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center text-white text-sm font-bold">
-                      5
+                      4
                     </span>
                     Решение системы
                   </h2>
@@ -1079,7 +1418,7 @@ export default function LagrangeCalculator() {
                 <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-purple-100 p-6">
                   <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
                     <span className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center text-white text-sm font-bold">
-                      6
+                      5
                     </span>
                     Анализ условий второго порядка
                   </h2>
@@ -1106,19 +1445,19 @@ export default function LagrangeCalculator() {
                       {Object.entries(geometryResult.criticalPoint.vars).map(([key, value]) => (
                         <div key={key} className="p-3 bg-white/20 rounded-xl">
                           <span className="text-white/80">{key} = </span>
-                          <span className="font-mono font-bold">{value.toFixed(4)}</span>
+                          <span className="font-mono font-bold">{value}</span>
                         </div>
                       ))}
                       <div className="p-3 bg-white/20 rounded-xl">
                         <span className="text-white/80">λ = </span>
-                        <span className="font-mono font-bold">{geometryResult.criticalPoint.lambda.toFixed(4)}</span>
+                        <span className="font-mono font-bold">{geometryResult.criticalPoint.lambda}</span>
                       </div>
                       <div className="p-3 bg-white/20 rounded-xl">
-                        <span className="text-white/80">f(x*) = </span>
-                        <span className="font-mono font-bold">{geometryResult.criticalPoint.fValue.toFixed(4)}</span>
+                        <span className="text-white/80">S(x*) = </span>
+                        <span className="font-mono font-bold">{geometryResult.criticalPoint.fValue}</span>
                       </div>
                     </div>
-                    <div className="mt-4 p-3 bg-white/20 rounded-xl">
+                    <div className="mt-4 p-3 bg-white/20 rounded-xl whitespace-pre-line">
                       <span className="font-semibold">{geometryResult.conclusion}</span>
                     </div>
                   </div>
