@@ -978,15 +978,9 @@ export default function LagrangeCalculator() {
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
         {/* Header */}
         <div className="flex justify-center items-center mb-6">
-          <Link
-            href="/math-methods"
-            className="text-purple-600 hover:text-purple-800 transition"
-            title="Назад к методам"
-          >
-            <TbSmartHome className="text-3xl mr-2" />
-          </Link>
-          <h1 className="text-xl md:text-3xl font-bold text-center bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
-            Метод множителей Лагранжа
+          <h1 className="text-2xl md:text-3xl font-bold mb-6 text-center flex items-center justify-center gap-2">
+              <Link href="/" className="text-blue-600 hover:text-blue-800 transition-colors"><TbSmartHome/></Link> 
+              Метод множителей Лагранжа
           </h1>
         </div>
 
