@@ -967,15 +967,15 @@ export default function LagrangeCalculator() {
   return (
     <div className="max-w-5xl mx-auto p-4 md:p-6 font-sans text-gray-800 pb-20">
       {/* Header */}
-      <div className="flex justify-center items-center mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold mb-6 text-center flex items-center justify-center gap-2">
+      <div className="flex justify-center items-center mb-2">
+        <h1 className="text-2xl md:text-3xl font-bold mb-2 text-center flex items-center justify-center gap-2">
             <Link href="/" className="text-blue-600 hover:text-blue-800 transition-colors"><TbSmartHome/></Link> 
             Метод множителей Лагранжа
         </h1>
       </div>
 
       {/* Tab Switcher */}
-      <div className="flex text-xs sm:text-sm md:text-base font-bold gap-1 sm:gap-3 flex-wrap justify-center">
+      <div className="flex text-xs sm:text-sm md:text-base mb-6 font-bold gap-1 sm:gap-3 flex-wrap justify-center">
         <button
           onClick={() => setActiveTab("quadratic")}
           className={`px-3 sm:px-4 py-3 sm:py-2 rounded-lg min-h-[44px] flex-1 sm:flex-none transition-colors ${
