@@ -330,7 +330,7 @@ export default function GradientCalculator() {
         };
 
     return (
-        <div className="max-w-5xl mx-auto p-4 md:p-6 font-sans text-gray-800 pb-20">
+        <div className="max-w-5xl mx-auto p-4 md:p-6 font-sans text-gray-800">
             <h1 className="text-2xl md:text-3xl font-bold mb-6 text-center flex items-center justify-center gap-2">
                 <Link href="/" className="text-blue-600 hover:text-blue-800 transition-colors"><TbSmartHome/></Link> 
                 Градиентный спуск

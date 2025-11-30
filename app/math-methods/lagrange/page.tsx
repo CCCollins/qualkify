@@ -965,7 +965,7 @@ export default function LagrangeCalculator() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto p-4 md:p-6 font-sans text-gray-800 pb-20">
+    <div className="max-w-5xl mx-auto p-4 md:p-6 font-sans text-gray-800">
       {/* Header */}
       <div className="flex justify-center items-center mb-2">
         <h1 className="text-2xl md:text-3xl font-bold mb-2 text-center flex items-center justify-center gap-2">
