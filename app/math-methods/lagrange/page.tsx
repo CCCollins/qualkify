@@ -488,11 +488,9 @@ export default function LagrangeCalculator() {
         const S_num = 2 * Math.PI * R_num * R_num + 2 * Math.PI * R_num * h_num
 
         // Представляем результаты через корни и π
-        const R_display = `∛(${V.toString()}/(2π))`
         const h_display = `2·∛(${V.toString()}/(2π))`
         const lambda_display = `-2/∛(${V.toString()}/(2π))`
 
-        systemSolution.push(`R = ${R_display}`)
         systemSolution.push(`h = 2R = ${h_display}`)
         systemSolution.push(`λ = -2/R = ${lambda_display}`)
         systemSolution.push("")
