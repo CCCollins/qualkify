@@ -12,7 +12,7 @@ const modules = [
 
 export default function Home() {
   return (
-    <main className="bg-white sm:bg-gradient-to-br sm:from-green-100 sm:to-emerald-200 flex flex-col items-center justify-center px-6 py-12">
+    <main className="bg-white sm:bg-gradient-to-br sm:from-sky-100 sm:to-blue-200 flex flex-col items-center justify-center px-6 py-12">
       <div className="text-center mb-4">
         <h1 className="text-4xl md:text-5xl font-bold text-gray-800 mb-2">
           <Link href="/">
