@@ -216,7 +216,6 @@ export default function MultipleRegressionPage() {
     
     // Standard error of regression
     const MSE = SSE / (n - k - 1);
-    const se = Math.sqrt(MSE);
     
     // Standard errors of coefficients
     const stdErrors = XtXinv.map((row, i) => Math.sqrt(MSE * row[i]));

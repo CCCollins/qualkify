@@ -239,10 +239,8 @@ export default function DummyVariablesPage() {
     const X1 = data1.map(d => [1, d.x1, d.x2]);
     
     const pooledResiduals = runRegression(Y, X_base);
-    const SSE_pooled = pooledResiduals.coefficients.reduce((_, __, i) => {
-      const pred = data.map(d => pooledResiduals.coefficients[0] + pooledResiduals.coefficients[1] * d.x1 + pooledResiduals.coefficients[2] * d.x2);
-      return data.reduce((s, d, j) => s + (d.y - pred[j]) ** 2, 0);
-    }, 0);
+    const pred_pooled = data.map(d => pooledResiduals.coefficients[0] + pooledResiduals.coefficients[1] * d.x1 + pooledResiduals.coefficients[2] * d.x2);
+    const SSE_pooled = data.reduce((s, d, j) => s + (d.y - pred_pooled[j]) ** 2, 0);
     
     const model0 = runRegression(Y0, X0);
     const model1 = runRegression(Y1, X1);
