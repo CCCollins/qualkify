@@ -56,13 +56,13 @@ const categories = [
     ],
   },
   {
-    name: 'Методы оценки эффективности ИТ-проектов',
+    name: 'Оценка эффективности проектов',
     path: '/it-methods',
     icon: '💻',
     color: 'from-purple-100 to-purple-50',
     text: 'text-purple-800',
     modules: [
-      { name: 'Пример модуля', path: '/it-methods/efficiency', emoji: '💻' },
+      { name: 'Пример модуля', path: '/it-methods/example', emoji: '💻' },
     ],
   },
   {
@@ -72,7 +72,7 @@ const categories = [
     color: 'from-teal-100 to-teal-50',
     text: 'text-teal-800',
     modules: [
-      { name: 'Пример модуля', path: '/econometrics/regression', emoji: '📈' },
+      { name: 'Пример модуля', path: '/econometrics/example', emoji: '📈' },
     ],
   },
 ];

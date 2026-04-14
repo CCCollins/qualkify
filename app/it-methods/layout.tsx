@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     title: 'Qualkify | Методы оценки эффективности ИТ-проектов',
-    description: 'Раздел калькулятора по оценке эффективности IT-проектов: расчёт ROI, метрики производительности и анализ инвестиций.',
+    description: 'Модуль оценки эффективности IT-проектов: расчёт ROI, метрики производительности и анализ инвестиций.',
     url: 'https://qualkify.vercel.app/it-methods',
     siteName: 'Qualkify',
     type: 'website',

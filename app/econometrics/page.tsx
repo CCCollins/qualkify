@@ -3,7 +3,7 @@
 import Link from 'next/link';
 
 const modules = [
-  { name: 'Пример модуля', path: '/econometrics/regression', emoji: '📈' },
+  { name: 'Пример модуля', path: '/econometrics/example', emoji: '📈' },
 ];
 
 export default function Home() {
@@ -12,33 +12,27 @@ export default function Home() {
       <div className="text-center mb-4">
         <h1 className="text-4xl md:text-5xl font-bold text-gray-800 mb-2">
           <Link href="/">
-            <span className="bg-green-600 text-white px-4 py-1 rounded-xl shadow transition">
+            <span className="bg-blue-600 text-white px-4 py-1 rounded-xl shadow transition">
               Qualkify
             </span>
           </Link>
         </h1>
         <p className="text-base md:text-lg text-gray-700 mt-4 font-medium">
-          Эконометрическое моделирование
+          Модульный калькулятор по эконометрическому моделированию для студентов
         </p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-2xl">
-        {modules.length > 0 ? (
-          modules.map(({ name, path, emoji }) => (
-            <Link
-              key={name}
-              href={path}
-              className="w-full flex items-center gap-4 px-6 py-5 bg-white text-green-800 font-semibold rounded-xl shadow-md hover:shadow-lg hover:bg-green-50 border border-green-100 transition-all duration-200 text-left"
-            >
-              <span className="text-2xl">{emoji}</span>
-              <span>{name}</span>
-            </Link>
-          ))
-        ) : (
-          <div className="col-span-1 sm:col-span-2 text-center py-8">
-            <p className="text-gray-600">Модули находятся в разработке</p>
-          </div>
-        )}
+        {modules.map(({ name, path, emoji }) => (
+          <Link
+            key={name}
+            href={path}
+            className="w-full flex items-center gap-4 px-6 py-5 bg-white text-blue-800 font-semibold rounded-xl shadow-md hover:shadow-lg hover:bg-blue-50 border border-blue-100 transition-all duration-200 text-left"
+          >
+            <span className="text-2xl">{emoji}</span>
+            <span>{name}</span>
+          </Link>
+        ))}
       </div>
 
       <footer className="mt-16 text-sm text-gray-500 text-center flex items-center justify-center gap-2">

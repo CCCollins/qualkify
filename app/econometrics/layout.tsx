@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     title: 'Qualkify | Эконометрическое моделирование',
-    description: 'Раздел калькулятора по эконометрическому моделированию: регрессия, статистические модели и прогнозирование.',
+    description: 'Модуль эконометрического моделирования: регрессия, статистические модели и прогнозирование.',
     url: 'https://qualkify.vercel.app/econometrics',
     siteName: 'Qualkify',
     type: 'website',
