@@ -3,7 +3,11 @@
 import Link from 'next/link';
 
 const modules = [
-  { name: 'Пример модуля', path: '/econometrics/example', emoji: '📈' },
+  { name: 'Корреляционный анализ', path: '/econometrics/correlation', emoji: '🔗' },
+  { name: 'Множественная регрессия', path: '/econometrics/multiple-regression', emoji: '📊' },
+  { name: 'Гетероскедастичность и ОМНК', path: '/econometrics/heteroscedasticity', emoji: '⚖️' },
+  { name: 'Фиктивные переменные', path: '/econometrics/dummy-variables', emoji: '🎯' },
+  { name: 'Автокорреляция и прогноз', path: '/econometrics/autocorrelation', emoji: '🔄' },
 ];
 
 export default function Home() {
